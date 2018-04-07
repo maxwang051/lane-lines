@@ -405,19 +405,18 @@ left_line = Line()
 right_line = Line()
 
 
-
 for i in range(frame_begin, frame_end):
-    img = cv2.imread(directory + str(i) + '.jpg')
+    img = cv2.imread(input_directory + str(i) + '.jpg')
 
     if img is not None:
-        print(i)
-        
+
         rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         output = process_image(rgb)
         bgr = cv2.cvtColor(output, cv2.COLOR_RGB2BGR)
         
+        # Uncomment this to show the frames being output
         #cv2.imshow('frame', bgr)
-        cv2.imwrite()
+        cv2.imwrite(output_directory + str(i) + '.jpg', bgr)
         
         if cv2.waitKey(25) == 27:
             break
