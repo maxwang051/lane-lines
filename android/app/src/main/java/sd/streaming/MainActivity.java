@@ -31,7 +31,8 @@ public class MainActivity extends AppCompatActivity {
 
     List<Mat> hls_list;
     Mat img, warpSrc, warpDst, M, Minv, warped, gray, hls, lab, hls_l, lab_b;
-    Mat l_thresh_high, b_thresh_high, sobel_x;
+    Mat l_thresh_high, b_thresh_high, sobel_x, binary_warped;
+    Mat histogram, nonzero, nonzerox, nonzeroy, good_left_inds, good_right_inds;
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -62,8 +63,15 @@ public class MainActivity extends AppCompatActivity {
 
                     l_thresh_high = new Mat(0, 0, CvType.CV_32F);
                     b_thresh_high = new Mat(0, 0, CvType.CV_32F);
-
                     sobel_x = new Mat(0, 0, CvType.CV_32F);
+                    binary_warped = new Mat(0, 0, CvType.CV_32F);
+
+                    histogram = new Mat(0, 0, CvType.CV_32F);
+                    nonzero = new Mat(0, 0, CvType.CV_32F);
+                    nonzerox = new Mat(0, 0, CvType.CV_32F);
+                    nonzeroy = new Mat(0, 0, CvType.CV_32F);
+                    good_left_inds = new Mat(0, 0, CvType.CV_32F);
+                    good_right_inds = new Mat(0, 0, CvType.CV_32F);
                 } break;
                 default:
                 {
@@ -132,8 +140,8 @@ public class MainActivity extends AppCompatActivity {
 
         processImage(img);
 
-        Bitmap bm = Bitmap.createBitmap(sobel_x.cols(), sobel_x.rows(),Bitmap.Config.ARGB_8888);
-        Utils.matToBitmap(sobel_x, bm);
+        Bitmap bm = Bitmap.createBitmap(binary_warped.cols(), binary_warped.rows(),Bitmap.Config.ARGB_8888);
+        Utils.matToBitmap(binary_warped, bm);
         imageView.setImageBitmap(bm);
 
         count = (count + 1) % 64;
@@ -177,18 +185,68 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // Threshold L and B channels
-        Imgproc.threshold(hls_l, l_thresh_high, 180, 255, 0);
-        Imgproc.threshold(lab_b, b_thresh_high, 180, 255, 0);
+        Imgproc.threshold(hls_l, l_thresh_high, 180, 255, Imgproc.THRESH_BINARY);
+        Imgproc.threshold(lab_b, b_thresh_high, 180, 255, Imgproc.THRESH_BINARY);
 
         // Get Sobel in x direction
         Imgproc.Sobel(gray, sobel_x, -1, 1, 0);
-
-        Log.d(TAG, sobel_x.type() + "");
         // Absolute value of Sobel
         Core.absdiff(sobel_x, new Scalar(0), sobel_x);
         // Normalize Sobel
         Core.MinMaxLocResult sobel_minMax = Core.minMaxLoc(sobel_x);
         Core.multiply(sobel_x, new Scalar(255.0 / sobel_minMax.maxVal), sobel_x);
+
+        Core.bitwise_or(l_thresh_high, sobel_x, binary_warped);
+        Core.bitwise_or(binary_warped, b_thresh_high, binary_warped);
+
+        // POLYFIT
+
+        // Single row vector where each element is the sum of the corresponding column
+        Core.reduce(binary_warped, histogram, 0, Core.REDUCE_SUM, histogram.depth());
+
+        // Get peaks for left and right halves of image
+        int midpoint = 160;
+        int leftx_base = 0;
+        int rightx_base = 0;
+
+        for (int i = 0; i < midpoint; i++) {
+            int num1 = (int) histogram.get(0, i)[0];
+            int num2 = (int) histogram.get(0, i + midpoint)[0];
+
+            if (num1 > leftx_base) leftx_base = num1;
+            if (num2 > rightx_base) rightx_base = num2;
+        }
+
+        // Number of sliding windows
+        int nwindows = 8;
+        // Set height of windows
+        int window_height = 20;
+
+        // Get nonzero pixels and separate into x and y coordinates
+        Core.findNonZero(binary_warped, nonzero);
+        Core.extractChannel(nonzero, nonzerox, 0);
+        Core.extractChannel(nonzero, nonzeroy, 1);
+
+        // Current positions to be updated for each window
+        int leftx_current = leftx_base;
+        int rightx_current = rightx_base;
+
+        // Set the width of the windows +/- margin
+        int margin = 40;
+        // Set minimum number of pixels found to recenter window
+        int minpix = 20;
+
+        // Step through the windows one by one
+        for (int i = 0; i < nwindows; i++) {
+            int win_y_low = binary_warped.height() - (i+1) * window_height;
+            int win_y_high = binary_warped.height() - i * window_height;
+            int win_xleft_low = leftx_current - margin;
+            int win_xleft_high = leftx_current + margin;
+            int win_xright_low = rightx_current - margin;
+            int win_xright_high = rightx_current + margin;
+
+            //Imgproc.threshold(nonzerox)
+        }
     }
 
 }
