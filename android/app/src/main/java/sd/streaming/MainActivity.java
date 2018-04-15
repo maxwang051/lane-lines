@@ -40,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
                 case LoaderCallbackInterface.SUCCESS:
                 {
                     Log.i(TAG, "OpenCV loaded successfully");
-                    img = new Mat(160,320,CvType.CV_8U);
+                    img = new Mat(160,320,CvType.CV_32F);
 
                     warpSrc = new Mat();
                     warpSrc.create(4, 2, CvType.CV_32F);
@@ -63,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
                     l_thresh_high = new Mat(0, 0, CvType.CV_32F);
                     b_thresh_high = new Mat(0, 0, CvType.CV_32F);
 
-                    sobel_x = new Mat(0, 0, CvType.CV_8S);
+                    sobel_x = new Mat(0, 0, CvType.CV_32F);
                 } break;
                 default:
                 {
@@ -181,7 +181,9 @@ public class MainActivity extends AppCompatActivity {
         Imgproc.threshold(lab_b, b_thresh_high, 180, 255, 0);
 
         // Get Sobel in x direction
-        Imgproc.Sobel(gray, sobel_x, 5, 1, 0);
+        Imgproc.Sobel(gray, sobel_x, -1, 1, 0);
+
+        Log.d(TAG, sobel_x.type() + "");
         // Absolute value of Sobel
         Core.absdiff(sobel_x, new Scalar(0), sobel_x);
         // Normalize Sobel
