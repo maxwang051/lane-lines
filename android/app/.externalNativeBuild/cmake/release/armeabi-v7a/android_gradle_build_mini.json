@@ -1,16 +1,16 @@
 {
   "buildFiles": [
-    "/Users/maxwang/CODE/sdapp/app/CMakeLists.txt"
+    "/Users/maxwang/CODE/lane-lines/android/app/CMakeLists.txt"
   ],
   "cleanCommands": [
-    "/Users/maxwang/Library/Android/sdk/cmake/3.6.4111459/bin/cmake --build /Users/maxwang/CODE/sdapp/app/.externalNativeBuild/cmake/release/armeabi-v7a --target clean"
+    "/Users/maxwang/Library/Android/sdk/cmake/3.6.4111459/bin/cmake --build /Users/maxwang/CODE/lane-lines/android/app/.externalNativeBuild/cmake/release/armeabi-v7a --target clean"
   ],
   "libraries": {
     "native-lib-Release-armeabi-v7a": {
       "artifactName": "native-lib",
-      "buildCommand": "/Users/maxwang/Library/Android/sdk/cmake/3.6.4111459/bin/cmake --build /Users/maxwang/CODE/sdapp/app/.externalNativeBuild/cmake/release/armeabi-v7a --target native-lib",
+      "buildCommand": "/Users/maxwang/Library/Android/sdk/cmake/3.6.4111459/bin/cmake --build /Users/maxwang/CODE/lane-lines/android/app/.externalNativeBuild/cmake/release/armeabi-v7a --target native-lib",
       "abi": "armeabi-v7a",
-      "output": "/Users/maxwang/CODE/sdapp/app/build/intermediates/cmake/release/obj/armeabi-v7a/libnative-lib.so"
+      "output": "/Users/maxwang/CODE/lane-lines/android/app/build/intermediates/cmake/release/obj/armeabi-v7a/libnative-lib.so"
     }
   }
 }
