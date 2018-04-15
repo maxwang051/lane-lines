@@ -14,8 +14,8 @@ input_directory = '/media/max/Storage/comma-dataset/comma-dataset/images/'
 output_directory = '/media/max/Storage/comma-dataset/comma-dataset/output/'
 
 parser = argparse.ArgumentParser(description='Lane line detector')
-parser.add_argument('--export_warped', dest='export_warped', action='store_true')
-parser.set_defaults(export_warped=False)
+parser.add_argument('--export_binary', dest='export_binary', action='store_true')
+parser.set_defaults(export_binary=False)
 args = parser.parse_args()
 
 frame_begin = 10000
@@ -399,7 +399,7 @@ def process_image(img):
     if left_line.best_fit is not None and right_line.best_fit is not None:
         left_rad, right_rad, distance = calculate_radius_and_distance(binary_warped, left_line.best_fit, right_line.best_fit, left_lane_inds, right_lane_inds)
 
-        if (args.export_warped):
+        if (args.export_binary):
             output_img = draw_on_lane(np.zeros_like(new_img), binary_warped, left_line.best_fit, right_line.best_fit, Minv)
         else:
             output_img = draw_on_lane(new_img, binary_warped, left_line.best_fit, right_line.best_fit, Minv)
