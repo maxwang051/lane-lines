@@ -400,7 +400,7 @@ def process_image(img):
         left_rad, right_rad, distance = calculate_radius_and_distance(binary_warped, left_line.best_fit, right_line.best_fit, left_lane_inds, right_lane_inds)
 
         if (args.export_binary):
-            output_img = draw_on_lane(np.zeros_like(new_img), binary_warped, left_line.best_fit, right_line.best_fit, Minv)
+            output_img = binary_warped
         else:
             output_img = draw_on_lane(new_img, binary_warped, left_line.best_fit, right_line.best_fit, Minv)
     else:

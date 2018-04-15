@@ -31,7 +31,7 @@ public class MainActivity extends AppCompatActivity {
 
     List<Mat> hls_list;
     Mat img, warpSrc, warpDst, M, Minv, warped, gray, hls, lab, hls_l, lab_b;
-    Mat l_thresh_high, b_thresh_high, sobel_x, binary_warped;
+    Mat l_thresh_high, b_thresh_high, sobel_x, sobel_x_low, sobel_x_high, binary_warped;
     Mat histogram, nonzero, nonzerox, nonzeroy, good_left_inds, good_right_inds;
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
@@ -64,6 +64,8 @@ public class MainActivity extends AppCompatActivity {
                     l_thresh_high = new Mat(0, 0, CvType.CV_32F);
                     b_thresh_high = new Mat(0, 0, CvType.CV_32F);
                     sobel_x = new Mat(0, 0, CvType.CV_32F);
+                    sobel_x_low = new Mat(0, 0, CvType.CV_32F);
+                    sobel_x_high = new Mat(0, 0, CvType.CV_32F);
                     binary_warped = new Mat(0, 0, CvType.CV_32F);
 
                     histogram = new Mat(0, 0, CvType.CV_32F);
@@ -195,9 +197,16 @@ public class MainActivity extends AppCompatActivity {
         // Normalize Sobel
         Core.MinMaxLocResult sobel_minMax = Core.minMaxLoc(sobel_x);
         Core.multiply(sobel_x, new Scalar(255.0 / sobel_minMax.maxVal), sobel_x);
+        // Threshold sobel values greater than 50 and less than 100 and combine back into sobel_x
+        Imgproc.threshold(sobel_x, sobel_x_low, 50, 255, Imgproc.THRESH_BINARY);
+        Imgproc.threshold(sobel_x, sobel_x_high, 140, 255, Imgproc.THRESH_BINARY_INV);
+        Core.bitwise_and(sobel_x_low, sobel_x_high, sobel_x);
 
         Core.bitwise_or(l_thresh_high, sobel_x, binary_warped);
         Core.bitwise_or(binary_warped, b_thresh_high, binary_warped);
+
+        Imgproc.threshold(binary_warped, binary_warped, 220, 255, Imgproc.THRESH_BINARY);
+
 
         // POLYFIT
 
@@ -226,6 +235,8 @@ public class MainActivity extends AppCompatActivity {
         Core.findNonZero(binary_warped, nonzero);
         Core.extractChannel(nonzero, nonzerox, 0);
         Core.extractChannel(nonzero, nonzeroy, 1);
+
+        Log.d(TAG, nonzero.height() + "");
 
         // Current positions to be updated for each window
         int leftx_current = leftx_base;
