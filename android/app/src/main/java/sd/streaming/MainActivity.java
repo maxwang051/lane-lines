@@ -221,7 +221,7 @@ public class MainActivity extends AppCompatActivity {
         Core.bitwise_or(l_thresh_high, sobel_x, binary_warped);
         Core.bitwise_or(binary_warped, b_thresh_high, binary_warped);
 
-        Imgproc.threshold(binary_warped, binary_warped, 220, 255, Imgproc.THRESH_BINARY);
+        Imgproc.threshold(binary_warped, binary_warped, 150, 255, Imgproc.THRESH_BINARY);
 
 
         // POLYFIT
@@ -265,12 +265,12 @@ public class MainActivity extends AppCompatActivity {
 
         //Alec's attempt
         int type = 5;
-        Mat left_lane_inds = new Mat(1,1,5,new Scalar(0)); //doesn't seem necessary
-        Mat right_lane_inds = new Mat(1,1,5,new Scalar(0)); //doesn't seem necessary
-        Mat rightx = new Mat(1,1,5,new Scalar(0));
-        Mat righty = new Mat(1,1,5,new Scalar(0));
-        Mat leftx = new Mat(1,1,5,new Scalar(0));
-        Mat lefty = new Mat(1,1,5,new Scalar(0));
+        Mat left_lane_inds = new Mat(0,1,5); //doesn't seem necessary
+        Mat right_lane_inds = new Mat(0,1,5); //doesn't seem necessary
+        Mat rightx = new Mat(0,1,5);
+        Mat righty = new Mat(0,1,5);
+        Mat leftx = new Mat(0,1,5);
+        Mat lefty = new Mat(0,1,5);
         // Step through the windows one by one
         for (int i = 0; i < nwindows; i++) {
             int win_y_low = binary_warped.height() - (i+1) * window_height;
@@ -280,9 +280,9 @@ public class MainActivity extends AppCompatActivity {
             int win_xright_low = rightx_current - margin;
             int win_xright_high = rightx_current + margin;
 
-            int right_count = -1;    //count of number of nonzeros in the window
+            int right_count = 0;    //count of number of nonzeros in the window
             double right_sum = 0;   //sum of the indeces of nonzeros
-            int left_count = -1;
+            int left_count = 0;
             double left_sum = 0;
 
             //Identify the nonzero pixels in x and y within the window
@@ -313,9 +313,11 @@ public class MainActivity extends AppCompatActivity {
             //If you found > minpix pixels, recenter next window on their mean position
             if(right_count > minpix){
                 rightx_current= (int)(right_sum / right_count);
+                Log.e("start",Integer.toString(rightx_current));
             }
             if(left_count > minpix){
                 leftx_current= (int)(left_sum / left_count);
+                Log.e("start",Integer.toString(leftx_current));
             }
 
             //Imgproc.threshold(nonzerox)
@@ -342,8 +344,10 @@ public class MainActivity extends AppCompatActivity {
         Mat color_warp = new Mat(0, 0, CvType.CV_32F);
         Core.merge(layers, color_warp);
 
-        Mat ploty = new Mat(1, width, CvType.CV_32F);
-        for (int i = 0; i < width; i++) { ploty.put(0, i, i); }
+        Mat leftploty = new Mat(1, width, CvType.CV_32F);
+        Mat rightploty = new Mat(1, width, CvType.CV_32F);
+        for (int i = 0; i < width/2; i++) { leftploty.put(0, i, i);
+        rightploty.put(0,i,i + width/2);}
 
         Mat left_fitx = new Mat(0, 0, CvType.CV_32F);
         Mat left_fitx2 = new Mat(0, 0, CvType.CV_32F);
@@ -354,37 +358,38 @@ public class MainActivity extends AppCompatActivity {
         Mat right_fitx1 = new Mat(0, 0, CvType.CV_32F);
 
         // left_fit[0]*ploty**2
-        Core.pow(ploty, 2, left_fitx2);
+        Core.pow(leftploty, 2, left_fitx2);
         Core.multiply(left_fitx2, new Scalar(left_weights.get(0, 0)[0]), left_fitx2);
         // left_fit[1]*ploty
-        Core.multiply(ploty, new Scalar(left_weights.get(1, 0)[0]), left_fitx1);
+        Core.multiply(leftploty, new Scalar(left_weights.get(1, 0)[0]), left_fitx1);
         Core.add(left_fitx2, left_fitx1, left_fitx);
         Core.add(left_fitx, new Scalar(left_weights.get(2, 0)[0]), left_fitx);
 
         // right_fit[0]*ploty**2
-        Core.pow(ploty, 2, right_fitx2);
+        Core.pow(rightploty, 2, right_fitx2);
         Core.multiply(right_fitx2, new Scalar(right_weights.get(0, 0)[0]), right_fitx2);
         // right_fit[1]*ploty
-        Core.multiply(ploty, new Scalar(right_weights.get(1, 0)[0]), right_fitx1);
+        Core.multiply(rightploty, new Scalar(right_weights.get(1, 0)[0]), right_fitx1);
         Core.add(right_fitx2, right_fitx1, right_fitx);
         Core.add(right_fitx, new Scalar(right_weights.get(2, 0)[0]), right_fitx);
 
         // Get points for left line
         List<Mat> matrices = new ArrayList<>();
         matrices.add(left_fitx);
-        matrices.add(ploty);
+        matrices.add(leftploty);
         Mat pts_left = new Mat(0, 0, CvType.CV_32F);
         Core.vconcat(matrices, pts_left);
         Core.transpose(pts_left, pts_left);
+        Core.flip(pts_left, pts_left, 1);
 
         // Get points for right line
         matrices.clear();
         matrices.add(right_fitx);
-        matrices.add(ploty);
+        matrices.add(rightploty);
         Mat pts_right = new Mat(0, 0, CvType.CV_32F);
         Core.vconcat(matrices, pts_right);
         Core.transpose(pts_right, pts_right);
-        Core.flip(pts_right, pts_right, 0);
+        Core.flip(pts_right, pts_right, 1);
 
         // Get points for both lines
         matrices.clear();
@@ -396,7 +401,7 @@ public class MainActivity extends AppCompatActivity {
         // Draw lines
         List<Point> pts_left_list = new ArrayList<>();
         List<Point> pts_right_list = new ArrayList<>();
-        for (int i = 0; i < width; i++) {
+        for (int i = 0; i < width/2; i++) {
             pts_left_list.add(new Point(pts_left.get(i, 0)[0], pts_left.get(i, 1)[0]));
             pts_right_list.add(new Point(pts_right.get(i, 0)[0], pts_right.get(i, 1)[0]));
         }
