@@ -14,11 +14,15 @@ import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -33,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
     Mat img, warpSrc, warpDst, M, Minv, warped, gray, hls, lab, hls_l, lab_b;
     Mat l_thresh_high, b_thresh_high, sobel_x, sobel_x_low, sobel_x_high, binary_warped;
     Mat histogram, nonzero, nonzerox, nonzeroy, good_left_inds, good_right_inds;
+    Mat result;
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -129,7 +134,6 @@ public class MainActivity extends AppCompatActivity {
 
         try {
             img = Utils.loadResource(MainActivity.this, id);
-            Imgproc.cvtColor(img, img, Imgproc.COLOR_RGB2BGRA);
         } catch (IOException e) {
             Log.e(TAG,Log.getStackTraceString(e));
         }
@@ -142,8 +146,8 @@ public class MainActivity extends AppCompatActivity {
 
         processImage(img);
 
-        Bitmap bm = Bitmap.createBitmap(binary_warped.cols(), binary_warped.rows(),Bitmap.Config.ARGB_8888);
-        Utils.matToBitmap(binary_warped, bm);
+        Bitmap bm = Bitmap.createBitmap(result.cols(), result.rows(),Bitmap.Config.ARGB_8888);
+        Utils.matToBitmap(result, bm);
         imageView.setImageBitmap(bm);
 
         count = (count + 1) % 64;
@@ -328,9 +332,95 @@ public class MainActivity extends AppCompatActivity {
             polyfit(leftx.t(),lefty,left_weights,5);
         }
 
-        Log.e("size",Double.toString(right_weights.get(0,0)[0]));
-        Log.e("size",Double.toString(right_weights.get(1,0)[0]));
-        Log.e("size",Double.toString(right_weights.get(2,0)[0]));
-    }
+        // DRAW ON LANE
 
+        Mat warp_zero = new Mat(160, 320, CvType.CV_8U, new Scalar(0));
+        List<Mat> layers = new ArrayList<>();
+        layers.add(warp_zero);
+        layers.add(warp_zero);
+        layers.add(warp_zero);
+        Mat color_warp = new Mat(0, 0, CvType.CV_32F);
+        Core.merge(layers, color_warp);
+
+        Mat ploty = new Mat(1, width, CvType.CV_32F);
+        for (int i = 0; i < width; i++) { ploty.put(0, i, i); }
+
+        Mat left_fitx = new Mat(0, 0, CvType.CV_32F);
+        Mat left_fitx2 = new Mat(0, 0, CvType.CV_32F);
+        Mat left_fitx1 = new Mat(0, 0, CvType.CV_32F);
+
+        Mat right_fitx = new Mat(0, 0, CvType.CV_32F);
+        Mat right_fitx2 = new Mat(0, 0, CvType.CV_32F);
+        Mat right_fitx1 = new Mat(0, 0, CvType.CV_32F);
+
+        // left_fit[0]*ploty**2
+        Core.pow(ploty, 2, left_fitx2);
+        Core.multiply(left_fitx2, new Scalar(left_weights.get(0, 0)[0]), left_fitx2);
+        // left_fit[1]*ploty
+        Core.multiply(ploty, new Scalar(left_weights.get(1, 0)[0]), left_fitx1);
+        Core.add(left_fitx2, left_fitx1, left_fitx);
+        Core.add(left_fitx, new Scalar(left_weights.get(2, 0)[0]), left_fitx);
+
+        // right_fit[0]*ploty**2
+        Core.pow(ploty, 2, right_fitx2);
+        Core.multiply(right_fitx2, new Scalar(right_weights.get(0, 0)[0]), right_fitx2);
+        // right_fit[1]*ploty
+        Core.multiply(ploty, new Scalar(right_weights.get(1, 0)[0]), right_fitx1);
+        Core.add(right_fitx2, right_fitx1, right_fitx);
+        Core.add(right_fitx, new Scalar(right_weights.get(2, 0)[0]), right_fitx);
+
+        // Get points for left line
+        List<Mat> matrices = new ArrayList<>();
+        matrices.add(left_fitx);
+        matrices.add(ploty);
+        Mat pts_left = new Mat(0, 0, CvType.CV_32F);
+        Core.vconcat(matrices, pts_left);
+        Core.transpose(pts_left, pts_left);
+
+        // Get points for right line
+        matrices.clear();
+        matrices.add(right_fitx);
+        matrices.add(ploty);
+        Mat pts_right = new Mat(0, 0, CvType.CV_32F);
+        Core.vconcat(matrices, pts_right);
+        Core.transpose(pts_right, pts_right);
+        Core.flip(pts_right, pts_right, 0);
+
+        // Get points for both lines
+        matrices.clear();
+        matrices.add(pts_left);
+        matrices.add(pts_right);
+        Mat pts = new Mat(0, 0, CvType.CV_32F);
+        Core.hconcat(matrices, pts);
+
+        // Draw lines
+        List<Point> pts_left_list = new ArrayList<>();
+        List<Point> pts_right_list = new ArrayList<>();
+        for (int i = 0; i < width; i++) {
+            pts_left_list.add(new Point(pts_left.get(i, 0)[0], pts_left.get(i, 1)[0]));
+            pts_right_list.add(new Point(pts_right.get(i, 0)[0], pts_right.get(i, 1)[0]));
+        }
+
+        MatOfPoint matOfPointLeft = new MatOfPoint();
+        matOfPointLeft.fromList(pts_left_list);
+        MatOfPoint matOfPointRight = new MatOfPoint();
+        matOfPointRight.fromList(pts_right_list);
+
+        double[] color = {0, 255, 0};
+
+        List<MatOfPoint> listOfPoints = new ArrayList<>();
+        listOfPoints.add(matOfPointLeft);
+        Imgproc.polylines(color_warp, listOfPoints, false, new Scalar(color), 5);
+
+        listOfPoints.clear();
+        listOfPoints.add(matOfPointRight);
+        Imgproc.polylines(color_warp, listOfPoints, false, new Scalar(color), 5);
+
+        Mat newwarp = new Mat();
+        Imgproc.warpPerspective(color_warp, newwarp, Minv, new Size(width, height), Imgproc.INTER_LINEAR);
+
+        result = new Mat();
+
+        Core.addWeighted(img, 1, newwarp, 0.5, 0, result);
+    }
 }
