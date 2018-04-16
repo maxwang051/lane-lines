@@ -26,7 +26,7 @@ import java.util.TimerTask;
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "OCVSample::Activity";
 
-    int count;
+    int count = 0;
     ImageView imageView;
 
     List<Mat> hls_list;
@@ -115,7 +115,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        count = 0;
     }
 
     void nextImage() {
@@ -150,19 +150,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void polyfit(Mat X, Mat Y, Mat weights, int type){
-
         Mat vand = new Mat(1,X.cols(),type);
         Core.multiply(X, X, vand );
         vand.push_back(X);
         Mat ones = new Mat(1,X.cols(),type,new Scalar(1));
         vand.push_back(ones);
-        Mat vand_t = new Mat(vand.rows(),vand.cols(),type);
-        vand.t().convertTo(vand_t,type);
         Mat squared = new Mat(vand.rows(),vand.rows(),type);
-        //Log.d("type",Integer.toString(vand.type()));
-        Core.gemm(vand, vand_t,1,new Mat(),1,squared);
-        Core.gemm(squared.inv(),vand,1,new Mat(),1,vand);
-        Core.gemm(vand,Y,1,new Mat(),1,weights);
+        Core.gemm(vand, vand.t(),1,new Mat(0,0,5),0,squared);
+        Core.gemm(squared.inv(),vand,1,new Mat(0,0,5),0,vand);
+        Core.gemm(vand,Y,1,new Mat(0,0,5),0,weights);
     }
 
     void processImage(Mat img) {
@@ -238,8 +234,8 @@ public class MainActivity extends AppCompatActivity {
             int num1 = (int) histogram.get(0, i)[0];
             int num2 = (int) histogram.get(0, i + midpoint)[0];
 
-            if (num1 > leftx_base) leftx_base = num1;
-            if (num2 > rightx_base) rightx_base = num2;
+            if (num1 > leftx_base) leftx_base = i;
+            if (num2 > rightx_base) rightx_base = i+midpoint;
         }
 
         // Number of sliding windows
@@ -264,13 +260,13 @@ public class MainActivity extends AppCompatActivity {
         int num_nonzeroes = nonzero.rows();
 
         //Alec's attempt
-        int type = nonzero.type();
-        Mat left_lane_inds = new Mat(0,1,type); //doesn't seem necessary
-        Mat right_lane_inds = new Mat(0,1,type); //doesn't seem necessary
-        Mat rightx = new Mat(0,1,type);
-        Mat righty = new Mat(0,1,type);
-        Mat leftx = new Mat(0,1,type);
-        Mat lefty = new Mat(0,1,type);
+        int type = 5;
+        Mat left_lane_inds = new Mat(1,1,5,new Scalar(0)); //doesn't seem necessary
+        Mat right_lane_inds = new Mat(1,1,5,new Scalar(0)); //doesn't seem necessary
+        Mat rightx = new Mat(1,1,5,new Scalar(0));
+        Mat righty = new Mat(1,1,5,new Scalar(0));
+        Mat leftx = new Mat(1,1,5,new Scalar(0));
+        Mat lefty = new Mat(1,1,5,new Scalar(0));
         // Step through the windows one by one
         for (int i = 0; i < nwindows; i++) {
             int win_y_low = binary_warped.height() - (i+1) * window_height;
@@ -280,16 +276,17 @@ public class MainActivity extends AppCompatActivity {
             int win_xright_low = rightx_current - margin;
             int win_xright_high = rightx_current + margin;
 
-            int right_count = 0;    //count of number of nonzeros in the window
+            int right_count = -1;    //count of number of nonzeros in the window
             double right_sum = 0;   //sum of the indeces of nonzeros
-            int left_count = 0;
+            int left_count = -1;
             double left_sum = 0;
 
             //Identify the nonzero pixels in x and y within the window
             for(int j = 0; j < num_nonzeroes; j++){     //iterate through each nonzero
-                double x = nonzerox.get(j,0)[0]; //TODO: access elements properly
-                double y = nonzeroy.get(j,0)[0]; //TODO: access elements properly
+                double x = nonzerox.get(j,0)[0];
+                double y = nonzeroy.get(j,0)[0];
                 if((y >= win_y_low) && (y < win_y_high) && (x >= win_xleft_low) &&  (x < win_xleft_high)) {
+
                     left_count++;
                     left_sum+=x;
                     //Append these indices to the lists
@@ -299,6 +296,7 @@ public class MainActivity extends AppCompatActivity {
                     lefty.push_back(new Mat(1,1,type,new Scalar(y)));
                 }
                 if((y >= win_y_low) && (y < win_y_high) && (x >= win_xright_low) &&  (x < win_xright_high)) {
+
                     right_count++;
                     right_sum+=x;
                     //Append these indices to the lists
@@ -308,7 +306,6 @@ public class MainActivity extends AppCompatActivity {
                     righty.push_back(new Mat(1,1,type,new Scalar(y)));
                 }
             }
-
             //If you found > minpix pixels, recenter next window on their mean position
             if(right_count > minpix){
                 rightx_current= (int)(right_sum / right_count);
@@ -316,18 +313,24 @@ public class MainActivity extends AppCompatActivity {
             if(left_count > minpix){
                 leftx_current= (int)(left_sum / left_count);
             }
+
             //Imgproc.threshold(nonzerox)
         }
 
         //Fit a second order polynomial to each
         Mat right_weights = new Mat(3,1,nonzero.type());
         Mat left_weights = new Mat(3,1,nonzero.type());
-        if(rightx.cols() > 0){
+
+        if(rightx.rows() > 0){
             polyfit(rightx.t(),righty,right_weights,5);
         }
-        if(leftx.cols() > 0){
+        if(leftx.rows() > 0){
             polyfit(leftx.t(),lefty,left_weights,5);
         }
+
+        Log.e("size",Double.toString(right_weights.get(0,0)[0]));
+        Log.e("size",Double.toString(right_weights.get(1,0)[0]));
+        Log.e("size",Double.toString(right_weights.get(2,0)[0]));
     }
 
 }
