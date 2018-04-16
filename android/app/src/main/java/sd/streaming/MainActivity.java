@@ -149,6 +149,18 @@ public class MainActivity extends AppCompatActivity {
         count = (count + 1) % 64;
     }
 
+    void polyfit(Mat X, Mat Y, Mat weights, int type){
+        Mat vand = new Mat(1,X.cols(),type);
+        Core.multiply(X, X, vand );
+        vand.push_back(X);
+        Mat ones = new Mat(1,X.cols(),type,new Scalar(1));
+        vand.push_back(ones);
+        Mat squared = new Mat(vand.rows(),vand.rows(),type);
+        Core.gemm(vand, vand.t(),1,new Mat(),1,squared);
+        Core.gemm(squared.inv(),vand,1,new Mat(),1,vand);
+        Core.gemm(vand,Y.t(),1,new Mat(),1,weights);
+    }
+
     void processImage(Mat img) {
         int height = img.height();
         int width = img.width();
@@ -247,6 +259,16 @@ public class MainActivity extends AppCompatActivity {
         // Set minimum number of pixels found to recenter window
         int minpix = 20;
 
+        int num_nonzeroes = nonzero.rows();
+
+        //Alec's attempt
+        int type = nonzero.type();
+        Mat left_lane_inds = new Mat(0,1,type); //doesn't seem necessary
+        Mat right_lane_inds = new Mat(0,1,type); //doesn't seem necessary
+        Mat rightx = new Mat(0,1,type);
+        Mat righty = new Mat(0,1,type);
+        Mat leftx = new Mat(0,1,type);
+        Mat lefty = new Mat(0,1,type);
         // Step through the windows one by one
         for (int i = 0; i < nwindows; i++) {
             int win_y_low = binary_warped.height() - (i+1) * window_height;
@@ -256,7 +278,53 @@ public class MainActivity extends AppCompatActivity {
             int win_xright_low = rightx_current - margin;
             int win_xright_high = rightx_current + margin;
 
+            int right_count = 0;    //count of number of nonzeros in the window
+            double right_sum = 0;   //sum of the indeces of nonzeros
+            int left_count = 0;
+            double left_sum = 0;
+
+            //Identify the nonzero pixels in x and y within the window
+            for(int j = 0; j < num_nonzeroes; j++){     //iterate through each nonzero
+                double x = nonzerox.get(j,1)[0]; //TODO: access elements properly
+                double y = nonzeroy.get(j,1)[0]; //TODO: access elements properly
+                if((y >= win_y_low) && (y < win_y_high) && (x >= win_xleft_low) &&  (x < win_xleft_high)) {
+                    left_count++;
+                    left_sum+=x;
+                    //Append these indices to the lists
+                    left_lane_inds.push_back(new Mat(1,1,type,new Scalar(j)));      //doesn't seem necessary
+                    //Extract left and right line pixel positions
+                    leftx.push_back(new Mat(1,1,type,new Scalar(x)));
+                    lefty.push_back(new Mat(1,1,type,new Scalar(y)));
+                }
+                if((y >= win_y_low) && (y < win_y_high) && (x >= win_xright_low) &&  (x < win_xright_high)) {
+                    right_count++;
+                    right_sum+=x;
+                    //Append these indices to the lists
+                    right_lane_inds.push_back(new Mat(1,1,type,new Scalar(j)));      //doesn't seem necessary
+                    //Extract left and right line pixel positions
+                    rightx.push_back(new Mat(1,1,type,new Scalar(x)));
+                    righty.push_back(new Mat(1,1,type,new Scalar(y)));
+                }
+            }
+
+            //If you found > minpix pixels, recenter next window on their mean position
+            if(right_count > minpix){
+                rightx_current= (int)(right_sum / right_count);
+            }
+            if(left_count > minpix){
+                leftx_current= (int)(left_sum / left_count);
+            }
             //Imgproc.threshold(nonzerox)
+        }
+
+        //Fit a second order polynomial to each
+        Mat right_weights = new Mat(3,1,nonzero.type());
+        Mat left_weights = new Mat(3,1,nonzero.type());
+        if(rightx.cols() > 0){
+            polyfit(rightx,righty,right_weights,type);
+        }
+        if(leftx.cols() > 0){
+            polyfit(leftx,lefty,left_weights,type);
         }
     }
 
