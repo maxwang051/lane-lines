@@ -150,15 +150,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void polyfit(Mat X, Mat Y, Mat weights, int type){
+
         Mat vand = new Mat(1,X.cols(),type);
         Core.multiply(X, X, vand );
         vand.push_back(X);
         Mat ones = new Mat(1,X.cols(),type,new Scalar(1));
         vand.push_back(ones);
+        Mat vand_t = new Mat(vand.rows(),vand.cols(),type);
+        vand.t().convertTo(vand_t,type);
         Mat squared = new Mat(vand.rows(),vand.rows(),type);
-        Core.gemm(vand, vand.t(),1,new Mat(),1,squared);
+        //Log.d("type",Integer.toString(vand.type()));
+        Core.gemm(vand, vand_t,1,new Mat(),1,squared);
         Core.gemm(squared.inv(),vand,1,new Mat(),1,vand);
-        Core.gemm(vand,Y.t(),1,new Mat(),1,weights);
+        Core.gemm(vand,Y,1,new Mat(),1,weights);
     }
 
     void processImage(Mat img) {
@@ -248,8 +252,6 @@ public class MainActivity extends AppCompatActivity {
         Core.extractChannel(nonzero, nonzerox, 0);
         Core.extractChannel(nonzero, nonzeroy, 1);
 
-        Log.d(TAG, nonzero.height() + "");
-
         // Current positions to be updated for each window
         int leftx_current = leftx_base;
         int rightx_current = rightx_base;
@@ -285,8 +287,8 @@ public class MainActivity extends AppCompatActivity {
 
             //Identify the nonzero pixels in x and y within the window
             for(int j = 0; j < num_nonzeroes; j++){     //iterate through each nonzero
-                double x = nonzerox.get(j,1)[0]; //TODO: access elements properly
-                double y = nonzeroy.get(j,1)[0]; //TODO: access elements properly
+                double x = nonzerox.get(j,0)[0]; //TODO: access elements properly
+                double y = nonzeroy.get(j,0)[0]; //TODO: access elements properly
                 if((y >= win_y_low) && (y < win_y_high) && (x >= win_xleft_low) &&  (x < win_xleft_high)) {
                     left_count++;
                     left_sum+=x;
@@ -321,10 +323,10 @@ public class MainActivity extends AppCompatActivity {
         Mat right_weights = new Mat(3,1,nonzero.type());
         Mat left_weights = new Mat(3,1,nonzero.type());
         if(rightx.cols() > 0){
-            polyfit(rightx,righty,right_weights,type);
+            polyfit(rightx.t(),righty,right_weights,5);
         }
         if(leftx.cols() > 0){
-            polyfit(leftx,lefty,left_weights,type);
+            polyfit(leftx.t(),lefty,left_weights,5);
         }
     }
 
