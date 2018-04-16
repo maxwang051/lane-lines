@@ -10,16 +10,16 @@ import argparse
 from moviepy.editor import VideoFileClip
 
 # CHANGE THESE
-input_directory = '/media/max/Storage/comma-dataset/comma-dataset/images/'
-output_directory = '/media/max/Storage/comma-dataset/comma-dataset/output/'
+input_directory = '../research/images/'
+output_directory = './output_images/'
 
 parser = argparse.ArgumentParser(description='Lane line detector')
 parser.add_argument('--export_binary', dest='export_binary', action='store_true')
 parser.set_defaults(export_binary=False)
 args = parser.parse_args()
 
-frame_begin = 10000
-frame_end = 16000
+frame_begin = 0
+frame_end = 52721
 
 def corners_unwarp(img):
     img_size = (img.shape[1], img.shape[0])
@@ -424,5 +424,5 @@ for i in range(frame_begin, frame_end):
         #cv2.imshow('frame', bgr)
         cv2.imwrite(output_directory + str(i) + '.jpg', bgr)
 
-        if cv2.waitKey(25) == 27:
-            break
+        '''if cv2.waitKey(25) == 27:
+            break'''
