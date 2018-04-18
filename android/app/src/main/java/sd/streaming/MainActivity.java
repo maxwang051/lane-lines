@@ -109,26 +109,37 @@ public class MainActivity extends AppCompatActivity {
         }
 
         count = 0;
-        try {
-            String hostAddress = "10.147.33.212";
-            InetAddress addr = null;
-            int tcpPort = 4444;// hardcoded -- must match the server's tcp port
-            BufferedReader input;
-            Socket tcp;
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    String hostAddress = "10.147.33.212";
+                    InetAddress addr = null;
+                    int tcpPort = 4444;// hardcoded -- must match the server's tcp port
+                    BufferedReader input;
+                    Socket tcp;
 
-            addr = InetAddress.getByName(hostAddress);
-            tcp = new Socket(addr, tcpPort);
-            input = new BufferedReader(new InputStreamReader(tcp.getInputStream()));
-            String in = null;
-            while((in = input.readLine()) != null){
-                byte[] imagebyte;
-                imagebyte = Base64.decode(in,Base64.DEFAULT);
-                final Bitmap image = BitmapFactory.decodeByteArray(imagebyte, 0, imagebyte.length);
-                imgData.addLast(image);
+                    addr = InetAddress.getByName(hostAddress);
+                    tcp = new Socket(addr, tcpPort);
+                    input = new BufferedReader(new InputStreamReader(tcp.getInputStream()));
+                    String in = null;
+                    while((in = input.readLine()) != null){
+                        byte[] imagebyte;
+                        imagebyte = Base64.decode(in,Base64.DEFAULT);
+                        final Bitmap image = BitmapFactory.decodeByteArray(imagebyte, 0, imagebyte.length);
+                        imgData.addLast(image);
+                    }
+                } catch (UnknownHostException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
+        });
+        t.start();
+        try {
+            t.join();
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
         Timer timer = new Timer();
