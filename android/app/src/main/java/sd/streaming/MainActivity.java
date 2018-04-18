@@ -4,6 +4,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Base64;
 import android.util.Log;
 import android.widget.ImageView;
 
@@ -20,9 +21,15 @@ import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -38,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
     Mat l_thresh_high, b_thresh_high, sobel_x, sobel_x_low, sobel_x_high, binary_warped;
     Mat histogram, nonzero, nonzerox, nonzeroy, good_left_inds, good_right_inds;
     Mat result;
+    LinkedList<Bitmap> imgData = new LinkedList<>();
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -101,7 +109,28 @@ public class MainActivity extends AppCompatActivity {
         }
 
         count = 0;
+        try {
+            String hostAddress = "10.147.33.212";
+            InetAddress addr = null;
+            int tcpPort = 4444;// hardcoded -- must match the server's tcp port
+            BufferedReader input;
+            Socket tcp;
 
+            addr = InetAddress.getByName(hostAddress);
+            tcp = new Socket(addr, tcpPort);
+            input = new BufferedReader(new InputStreamReader(tcp.getInputStream()));
+            String in = null;
+            while((in = input.readLine()) != null){
+                byte[] imagebyte;
+                imagebyte = Base64.decode(in,Base64.DEFAULT);
+                final Bitmap image = BitmapFactory.decodeByteArray(imagebyte, 0, imagebyte.length);
+                imgData.addLast(image);
+            }
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         Timer timer = new Timer();
         timer.schedule(new TimerTask() {
             @Override
@@ -130,7 +159,11 @@ public class MainActivity extends AppCompatActivity {
                 type, packageName);
         imageView = (ImageView) findViewById(R.id.imageView);
 
-        Bitmap bmp = BitmapFactory.decodeResource(getResources(),R.drawable.image0);
+        Bitmap bmp = imgData.poll();
+        if(bmp == null) {
+            return;
+        }
+//        Bitmap bmp = BitmapFactory.decodeResource(getResources(),R.drawable.image0);
 
         try {
             img = Utils.loadResource(MainActivity.this, id);
@@ -144,11 +177,11 @@ public class MainActivity extends AppCompatActivity {
         //lab_b.create(img.rows(), img.cols(), CvType.CV_32F);
         //l_thresh_high.create(img.rows(), img.cols(), CvType.CV_32F);
 
-        processImage(img);
+//        processImage(img);
 
-        Bitmap bm = Bitmap.createBitmap(result.cols(), result.rows(),Bitmap.Config.ARGB_8888);
-        Utils.matToBitmap(result, bm);
-        imageView.setImageBitmap(bm);
+//        Bitmap bm = Bitmap.createBitmap(result.cols(), result.rows(),Bitmap.Config.ARGB_8888);
+//        Utils.matToBitmap(result, bm);
+        imageView.setImageBitmap(bmp);
 
         count = (count + 1) % 64;
     }
