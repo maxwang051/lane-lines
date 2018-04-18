@@ -18,7 +18,7 @@ parser.add_argument('--export_binary', dest='export_binary', action='store_true'
 parser.set_defaults(export_binary=False)
 args = parser.parse_args()
 
-frame_begin = 0
+frame_begin = 30000
 frame_end = 52721
 
 def corners_unwarp(img):
