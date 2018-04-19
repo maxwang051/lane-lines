@@ -281,8 +281,8 @@ public class MainActivity extends AppCompatActivity{
         Core.MinMaxLocResult sobel_minMax = Core.minMaxLoc(sobel_x);
         Core.multiply(sobel_x, new Scalar(255.0 / sobel_minMax.maxVal), sobel_x);
         // Threshold sobel values greater than 50 and less than 100 and combine back into sobel_x
-        Imgproc.threshold(sobel_x, sobel_x_low, 50, 255, Imgproc.THRESH_BINARY);
-        Imgproc.threshold(sobel_x, sobel_x_high, 140, 255, Imgproc.THRESH_BINARY_INV);
+        Imgproc.threshold(sobel_x, sobel_x_low, 90, 255, Imgproc.THRESH_BINARY);
+        Imgproc.threshold(sobel_x, sobel_x_high, 200, 255, Imgproc.THRESH_BINARY_INV);
         Core.bitwise_and(sobel_x_low, sobel_x_high, sobel_x);
 
         Core.bitwise_or(l_thresh_high, sobel_x, binary_warped);
@@ -396,14 +396,18 @@ public class MainActivity extends AppCompatActivity{
         //for (int i = 0; i < width; i++) { ploty.put(0, i, i);}
 
         Core.MinMaxLocResult leftmm = Core.minMaxLoc(leftx);
-        leftWidth = (int)(leftmm.maxVal - leftmm.minVal);
+        leftWidth = (int)(leftmm.maxVal);
+        //leftWidth = width;
+        //rightWidth = width;
         leftploty = new Mat(1,leftWidth,CvType.CV_32F);
-        for (int i = 0; i < leftWidth; i++ ){leftploty.put(0,i,leftmm.minVal + i);}
+        for (int i = 0; i < leftWidth; i++ ){leftploty.put(0,i,i);}
 
         Core.MinMaxLocResult rightmm = Core.minMaxLoc(rightx);
-        rightWidth = (int)(rightmm.maxVal - rightmm.minVal);
+        rightWidth = (int)(width - rightmm.minVal);
+        //leftWidth = width;
+        //rightWidth = width;
         rightploty = new Mat(1,rightWidth,CvType.CV_32F);
-        for (int i = 0; i < rightWidth; i++ ){rightploty.put(0,i,rightmm.minVal + i);}
+        for (int i = 0; i < rightWidth; i++ ){rightploty.put(0,i,i+rightmm.minVal);}
 
         left_fitx = new Mat(0, 0, CvType.CV_32F);
         left_fitx2 = new Mat(0, 0, CvType.CV_32F);
