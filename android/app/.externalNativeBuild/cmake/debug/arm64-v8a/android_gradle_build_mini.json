@@ -1,16 +1,16 @@
 {
   "buildFiles": [
-    "/Users/maxwang/CODE/lane-lines/android/app/CMakeLists.txt"
+    "C:\\Users\\Alec\\AndroidStudioProjects\\lane-lines\\android\\app\\CMakeLists.txt"
   ],
   "cleanCommands": [
-    "/Users/maxwang/Library/Android/sdk/cmake/3.6.4111459/bin/cmake --build /Users/maxwang/CODE/lane-lines/android/app/.externalNativeBuild/cmake/debug/arm64-v8a --target clean"
+    "C:\\Users\\Alec\\AppData\\Local\\Android\\Sdk\\cmake\\3.6.4111459\\bin\\cmake.exe --build C:\\Users\\Alec\\AndroidStudioProjects\\lane-lines\\android\\app\\.externalNativeBuild\\cmake\\debug\\arm64-v8a --target clean"
   ],
   "libraries": {
     "native-lib-Debug-arm64-v8a": {
       "artifactName": "native-lib",
-      "buildCommand": "/Users/maxwang/Library/Android/sdk/cmake/3.6.4111459/bin/cmake --build /Users/maxwang/CODE/lane-lines/android/app/.externalNativeBuild/cmake/debug/arm64-v8a --target native-lib",
+      "buildCommand": "C:\\Users\\Alec\\AppData\\Local\\Android\\Sdk\\cmake\\3.6.4111459\\bin\\cmake.exe --build C:\\Users\\Alec\\AndroidStudioProjects\\lane-lines\\android\\app\\.externalNativeBuild\\cmake\\debug\\arm64-v8a --target native-lib",
       "abi": "arm64-v8a",
-      "output": "/Users/maxwang/CODE/lane-lines/android/app/build/intermediates/cmake/debug/obj/arm64-v8a/libnative-lib.so"
+      "output": "C:\\Users\\Alec\\AndroidStudioProjects\\lane-lines\\android\\app\\build\\intermediates\\cmake\\debug\\obj\\arm64-v8a\\libnative-lib.so"
     }
   }
 }

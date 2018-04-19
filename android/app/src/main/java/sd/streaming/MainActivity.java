@@ -14,6 +14,7 @@ import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfFloat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
@@ -22,22 +23,42 @@ import org.opencv.imgproc.Imgproc;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.lang.Math;
 
-public class MainActivity extends AppCompatActivity {
+import org.tensorflow.contrib.android.TensorFlowInferenceInterface;
+
+public class MainActivity extends AppCompatActivity{
     private static final String TAG = "OCVSample::Activity";
 
     int count = 0;
     ImageView imageView;
 
-    List<Mat> hls_list;
     Mat img, warpSrc, warpDst, M, Minv, warped, gray, hls, lab, hls_l, lab_b;
     Mat l_thresh_high, b_thresh_high, sobel_x, sobel_x_low, sobel_x_high, binary_warped;
+    Mat vand,ones,squared;
+    Mat leftploty, rightploty, ploty, left_fitx, left_fitx2, left_fitx1, right_fitx, right_fitx2, right_fitx1, right_weights, left_weights;
+    Mat rightx, righty, leftx, lefty, pts_left, pts_right;
     Mat histogram, nonzero, nonzerox, nonzeroy, good_left_inds, good_right_inds;
-    Mat result;
+    Mat warp_zero, color_warp, newwarp, result;
+
+    static {
+        System.loadLibrary("tensorflow_inference");
+    }
+
+    private static final String MODEL_FILE = "file:///android_asset/model.pb";
+    private static final String INPUT_NODE = "lambda_input_1";
+    private static final String OUTPUT_NODE = "add_8";
+    private TensorFlowInferenceInterface inferenceInterface;
+    private static final int[] INPUT_SIZE = {160,320,3};
+
+    int width = 320;
+    int height = 160;
+    int channels = 3;
+
+    int type = CvType.CV_32F;
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -46,39 +67,39 @@ public class MainActivity extends AppCompatActivity {
                 case LoaderCallbackInterface.SUCCESS:
                 {
                     Log.i(TAG, "OpenCV loaded successfully");
-                    img = new Mat(160,320,CvType.CV_32F);
+                    img = new Mat(height,width,type);
 
                     warpSrc = new Mat();
-                    warpSrc.create(4, 2, CvType.CV_32F);
+                    warpSrc.create(4, 2, type);
 
                     warpDst = new Mat();
-                    warpDst.create(4, 2, CvType.CV_32F);
+                    warpDst.create(4, 2, type);
 
                     M = new Mat();
-                    M.create(3,3, CvType.CV_32F);
+                    M.create(3,3, type);
                     Minv = new Mat();
-                    warped = new Mat(0, 0, CvType.CV_32F);
+                    warped = new Mat(0, 0, type);
 
-                    gray = new Mat(0, 0, CvType.CV_32F);
-                    hls = new Mat(0, 0, CvType.CV_32F);
-                    lab = new Mat(0, 0, CvType.CV_32F);
+                    gray = new Mat(0, 0, type);
+                    hls = new Mat(0, 0, type);
+                    lab = new Mat(0, 0, type);
 
-                    hls_l = new Mat(0, 0, CvType.CV_32F);
-                    lab_b = new Mat(0, 0, CvType.CV_32F);
+                    hls_l = new Mat(0, 0, type);
+                    lab_b = new Mat(0, 0, type);
 
-                    l_thresh_high = new Mat(0, 0, CvType.CV_32F);
-                    b_thresh_high = new Mat(0, 0, CvType.CV_32F);
-                    sobel_x = new Mat(0, 0, CvType.CV_32F);
-                    sobel_x_low = new Mat(0, 0, CvType.CV_32F);
-                    sobel_x_high = new Mat(0, 0, CvType.CV_32F);
-                    binary_warped = new Mat(0, 0, CvType.CV_32F);
+                    l_thresh_high = new Mat(0, 0, type);
+                    b_thresh_high = new Mat(0, 0, type);
+                    sobel_x = new Mat(0, 0, type);
+                    sobel_x_low = new Mat(0, 0, type);
+                    sobel_x_high = new Mat(0, 0, type);
+                    binary_warped = new Mat(0, 0, type);
 
-                    histogram = new Mat(0, 0, CvType.CV_32F);
-                    nonzero = new Mat(0, 0, CvType.CV_32F);
-                    nonzerox = new Mat(0, 0, CvType.CV_32F);
-                    nonzeroy = new Mat(0, 0, CvType.CV_32F);
-                    good_left_inds = new Mat(0, 0, CvType.CV_32F);
-                    good_right_inds = new Mat(0, 0, CvType.CV_32F);
+                    histogram = new Mat(0, 0, type);
+                    nonzero = new Mat(0, 0, type);
+                    nonzerox = new Mat(0, 0, type);
+                    nonzeroy = new Mat(0, 0, type);
+                    good_left_inds = new Mat(0, 0, type);
+                    good_right_inds = new Mat(0, 0, type);
                 } break;
                 default:
                 {
@@ -88,6 +109,7 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    Timer timer;
     @Override
     public void onResume()
     {
@@ -102,7 +124,7 @@ public class MainActivity extends AppCompatActivity {
 
         count = 0;
 
-        Timer timer = new Timer();
+        timer = new Timer();
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
@@ -121,16 +143,20 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         count = 0;
+        inferenceInterface = new TensorFlowInferenceInterface();
+        inferenceInterface.initializeTensorFlow(getAssets(), MODEL_FILE);
     }
 
-    void nextImage() {
-        String packageName = getPackageName();
-        String type = "drawable";
-        int id = getResources().getIdentifier("image" + Integer.toString(count),
-                type, packageName);
-        imageView = (ImageView) findViewById(R.id.imageView);
+    String packageName;
+    String drawable = "drawable";
+    int id;
+    Bitmap bm;
 
-        Bitmap bmp = BitmapFactory.decodeResource(getResources(),R.drawable.image0);
+    void nextImage() {
+        packageName = getPackageName();
+        id = getResources().getIdentifier("image" + Integer.toString(count),
+                drawable, packageName);
+        imageView = (ImageView) findViewById(R.id.imageView);
 
         try {
             img = Utils.loadResource(MainActivity.this, id);
@@ -146,7 +172,7 @@ public class MainActivity extends AppCompatActivity {
 
         processImage(img);
 
-        Bitmap bm = Bitmap.createBitmap(result.cols(), result.rows(),Bitmap.Config.ARGB_8888);
+        bm = Bitmap.createBitmap(width, height,Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(result, bm);
         imageView.setImageBitmap(bm);
 
@@ -154,24 +180,65 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void polyfit(Mat X, Mat Y, Mat weights, int type){
-        Mat vand = new Mat(1,X.cols(),type);
+        vand = new Mat(1,X.cols(),type);
         Core.multiply(X, X, vand );
         vand.push_back(X);
-        Mat ones = new Mat(1,X.cols(),type,new Scalar(1));
+        ones = new Mat(1,X.cols(),type, new Scalar(1));
         vand.push_back(ones);
-        Mat squared = new Mat(vand.rows(),vand.rows(),type);
+        squared = new Mat(vand.rows(),vand.rows(),type);
         Core.gemm(vand, vand.t(),1,new Mat(0,0,5),0,squared);
         Core.gemm(squared.inv(),vand,1,new Mat(0,0,5),0,vand);
         Core.gemm(vand,Y,1,new Mat(0,0,5),0,weights);
     }
 
+    float[] inputFloats;
+
+    int offset = 40;
+
+    int midpoint = 160;
+    int leftx_base = 0;
+    int rightx_base = 0;
+    int num1,num2;
+
+    // Number of sliding windows
+    int nwindows = 8;
+    // Set height of windows
+    int window_height = 20;
+    // Set the width of the windows +/- margin
+    int margin = 40;
+    // Set minimum number of pixels found to recenter window
+    int minpix = 20;
+
+    int win_y_low, win_y_high, win_xleft_low, win_xleft_high, win_xright_low, win_xright_high;
+
+    int leftx_current, rightx_current;
+    int num_nonzeroes;
+
+    int right_count, left_count;    //count of number of nonzeros in the window
+    double right_sum, left_sum;   //sum of the indeces of nonzeros
+
+    double x,y;
+
+    int leftWidth, rightWidth;
+
+    List<Mat> layers = new ArrayList<>();
+    List<Point> pts_left_list = new ArrayList<>();
+    List<Point> pts_right_list = new ArrayList<>();
+    List<Mat> matrices = new ArrayList<>();
+    List<MatOfPoint> listOfPoints = new ArrayList<>();
+
+    MatOfPoint matOfPointLeft, matOfPointRight, matOfPointPath;
+    MatOfFloat rgb;
+
+    double[] green = {0, 255, 0};
+    double[] red = {255,0,0};
+    float[] resu = {0};
+    double angle;
+    List<Point> path = new ArrayList<>();
+    int pathMaxHeight = 120;
+
     void processImage(Mat img) {
-        int height = img.height();
-        int width = img.width();
-
         // Warp perspective to top down
-        int offset = 40;
-
         warpSrc.put(0, 0, new double[]{110,40});
         warpSrc.put(1, 0, new double[]{210,40});
         warpSrc.put(2, 0, new double[]{20,120});
@@ -230,22 +297,16 @@ public class MainActivity extends AppCompatActivity {
         Core.reduce(binary_warped, histogram, 0, Core.REDUCE_SUM, histogram.depth());
 
         // Get peaks for left and right halves of image
-        int midpoint = 160;
-        int leftx_base = 0;
-        int rightx_base = 0;
+        leftx_base = 0;
+        rightx_base = 0;
 
         for (int i = 0; i < midpoint; i++) {
-            int num1 = (int) histogram.get(0, i)[0];
-            int num2 = (int) histogram.get(0, i + midpoint)[0];
+            num1 = (int) histogram.get(0, i)[0];
+            num2 = (int) histogram.get(0, i + midpoint)[0];
 
             if (num1 > leftx_base) leftx_base = i;
             if (num2 > rightx_base) rightx_base = i+midpoint;
         }
-
-        // Number of sliding windows
-        int nwindows = 8;
-        // Set height of windows
-        int window_height = 20;
 
         // Get nonzero pixels and separate into x and y coordinates
         Core.findNonZero(binary_warped, nonzero);
@@ -253,48 +314,38 @@ public class MainActivity extends AppCompatActivity {
         Core.extractChannel(nonzero, nonzeroy, 1);
 
         // Current positions to be updated for each window
-        int leftx_current = leftx_base;
-        int rightx_current = rightx_base;
+        leftx_current = leftx_base;
+        rightx_current = rightx_base;
 
-        // Set the width of the windows +/- margin
-        int margin = 40;
-        // Set minimum number of pixels found to recenter window
-        int minpix = 20;
+        num_nonzeroes = nonzero.rows();
 
-        int num_nonzeroes = nonzero.rows();
-
-        //Alec's attempt
-        int type = 5;
-        Mat left_lane_inds = new Mat(0,1,5); //doesn't seem necessary
-        Mat right_lane_inds = new Mat(0,1,5); //doesn't seem necessary
-        Mat rightx = new Mat(0,1,5);
-        Mat righty = new Mat(0,1,5);
-        Mat leftx = new Mat(0,1,5);
-        Mat lefty = new Mat(0,1,5);
+        rightx = new Mat(0,1,type);
+        righty = new Mat(0,1,type);
+        leftx = new Mat(0,1,type);
+        lefty = new Mat(0,1,type);
         // Step through the windows one by one
         for (int i = 0; i < nwindows; i++) {
-            int win_y_low = binary_warped.height() - (i+1) * window_height;
-            int win_y_high = binary_warped.height() - i * window_height;
-            int win_xleft_low = leftx_current - margin;
-            int win_xleft_high = leftx_current + margin;
-            int win_xright_low = rightx_current - margin;
-            int win_xright_high = rightx_current + margin;
+            win_y_low = binary_warped.height() - (i+1) * window_height;
+            win_y_high = binary_warped.height() - i * window_height;
+            win_xleft_low = leftx_current - margin;
+            win_xleft_high = leftx_current + margin;
+            win_xright_low = rightx_current - margin;
+            win_xright_high = rightx_current + margin;
 
-            int right_count = 0;    //count of number of nonzeros in the window
-            double right_sum = 0;   //sum of the indeces of nonzeros
-            int left_count = 0;
-            double left_sum = 0;
+            right_count = 0;    //count of number of nonzeros in the window
+            right_sum = 0;   //sum of the indeces of nonzeros
+            left_count = 0;
+            left_sum = 0;
 
             //Identify the nonzero pixels in x and y within the window
             for(int j = 0; j < num_nonzeroes; j++){     //iterate through each nonzero
-                double x = nonzerox.get(j,0)[0];
-                double y = nonzeroy.get(j,0)[0];
+                x = nonzerox.get(j,0)[0];
+                y = nonzeroy.get(j,0)[0];
                 if((y >= win_y_low) && (y < win_y_high) && (x >= win_xleft_low) &&  (x < win_xleft_high)) {
 
                     left_count++;
                     left_sum+=x;
                     //Append these indices to the lists
-                    left_lane_inds.push_back(new Mat(1,1,type,new Scalar(j)));      //doesn't seem necessary
                     //Extract left and right line pixel positions
                     leftx.push_back(new Mat(1,1,type,new Scalar(x)));
                     lefty.push_back(new Mat(1,1,type,new Scalar(y)));
@@ -304,7 +355,6 @@ public class MainActivity extends AppCompatActivity {
                     right_count++;
                     right_sum+=x;
                     //Append these indices to the lists
-                    right_lane_inds.push_back(new Mat(1,1,type,new Scalar(j)));      //doesn't seem necessary
                     //Extract left and right line pixel positions
                     rightx.push_back(new Mat(1,1,type,new Scalar(x)));
                     righty.push_back(new Mat(1,1,type,new Scalar(y)));
@@ -313,20 +363,18 @@ public class MainActivity extends AppCompatActivity {
             //If you found > minpix pixels, recenter next window on their mean position
             if(right_count > minpix){
                 rightx_current= (int)(right_sum / right_count);
-                Log.e("start",Integer.toString(rightx_current));
             }
             if(left_count > minpix){
                 leftx_current= (int)(left_sum / left_count);
-                Log.e("start",Integer.toString(leftx_current));
             }
 
             //Imgproc.threshold(nonzerox)
         }
 
-        //Fit a second order polynomial to each
-        Mat right_weights = new Mat(3,1,nonzero.type());
-        Mat left_weights = new Mat(3,1,nonzero.type());
+        right_weights = new Mat(3,1,type);
+        left_weights = new Mat(3,1,type);
 
+        //Fit a second order polynomial to each
         if(rightx.rows() > 0){
             polyfit(rightx.t(),righty,right_weights,5);
         }
@@ -336,26 +384,34 @@ public class MainActivity extends AppCompatActivity {
 
         // DRAW ON LANE
 
-        Mat warp_zero = new Mat(160, 320, CvType.CV_8U, new Scalar(0));
-        List<Mat> layers = new ArrayList<>();
+        warp_zero = new Mat(160, 320, CvType.CV_8U, new Scalar(0));
+        layers.clear();
         layers.add(warp_zero);
         layers.add(warp_zero);
         layers.add(warp_zero);
-        Mat color_warp = new Mat(0, 0, CvType.CV_32F);
+        color_warp = new Mat(0, 0, CvType.CV_32F);
         Core.merge(layers, color_warp);
 
-        Mat leftploty = new Mat(1, width, CvType.CV_32F);
-        Mat rightploty = new Mat(1, width, CvType.CV_32F);
-        for (int i = 0; i < width/2; i++) { leftploty.put(0, i, i);
-        rightploty.put(0,i,i + width/2);}
+        //Mat ploty = new Mat(1, width, CvType.CV_32F);
+        //for (int i = 0; i < width; i++) { ploty.put(0, i, i);}
 
-        Mat left_fitx = new Mat(0, 0, CvType.CV_32F);
-        Mat left_fitx2 = new Mat(0, 0, CvType.CV_32F);
-        Mat left_fitx1 = new Mat(0, 0, CvType.CV_32F);
+        Core.MinMaxLocResult leftmm = Core.minMaxLoc(leftx);
+        leftWidth = (int)(leftmm.maxVal - leftmm.minVal);
+        leftploty = new Mat(1,leftWidth,CvType.CV_32F);
+        for (int i = 0; i < leftWidth; i++ ){leftploty.put(0,i,leftmm.minVal + i);}
 
-        Mat right_fitx = new Mat(0, 0, CvType.CV_32F);
-        Mat right_fitx2 = new Mat(0, 0, CvType.CV_32F);
-        Mat right_fitx1 = new Mat(0, 0, CvType.CV_32F);
+        Core.MinMaxLocResult rightmm = Core.minMaxLoc(rightx);
+        rightWidth = (int)(rightmm.maxVal - rightmm.minVal);
+        rightploty = new Mat(1,rightWidth,CvType.CV_32F);
+        for (int i = 0; i < rightWidth; i++ ){rightploty.put(0,i,rightmm.minVal + i);}
+
+        left_fitx = new Mat(0, 0, CvType.CV_32F);
+        left_fitx2 = new Mat(0, 0, CvType.CV_32F);
+        left_fitx1 = new Mat(0, 0, CvType.CV_32F);
+
+        right_fitx = new Mat(0, 0, CvType.CV_32F);
+        right_fitx2 = new Mat(0, 0, CvType.CV_32F);
+        right_fitx1 = new Mat(0, 0, CvType.CV_32F);
 
         // left_fit[0]*ploty**2
         Core.pow(leftploty, 2, left_fitx2);
@@ -374,55 +430,82 @@ public class MainActivity extends AppCompatActivity {
         Core.add(right_fitx, new Scalar(right_weights.get(2, 0)[0]), right_fitx);
 
         // Get points for left line
-        List<Mat> matrices = new ArrayList<>();
+        matrices.clear();
         matrices.add(left_fitx);
         matrices.add(leftploty);
-        Mat pts_left = new Mat(0, 0, CvType.CV_32F);
+        pts_left = new Mat(0, 0, CvType.CV_32F);
         Core.vconcat(matrices, pts_left);
         Core.transpose(pts_left, pts_left);
-        Core.flip(pts_left, pts_left, 1);
+        Core.flip(pts_left, pts_left, -1);
 
         // Get points for right line
         matrices.clear();
         matrices.add(right_fitx);
         matrices.add(rightploty);
-        Mat pts_right = new Mat(0, 0, CvType.CV_32F);
+        pts_right = new Mat(0, 0, CvType.CV_32F);
         Core.vconcat(matrices, pts_right);
         Core.transpose(pts_right, pts_right);
-        Core.flip(pts_right, pts_right, 1);
-
-        // Get points for both lines
-        matrices.clear();
-        matrices.add(pts_left);
-        matrices.add(pts_right);
-        Mat pts = new Mat(0, 0, CvType.CV_32F);
-        Core.hconcat(matrices, pts);
+        Core.flip(pts_right, pts_right, -1);
 
         // Draw lines
-        List<Point> pts_left_list = new ArrayList<>();
-        List<Point> pts_right_list = new ArrayList<>();
-        for (int i = 0; i < width/2; i++) {
+        pts_left_list.clear();
+        pts_right_list.clear();
+        for (int i = 0; i < leftWidth; i++) {
             pts_left_list.add(new Point(pts_left.get(i, 0)[0], pts_left.get(i, 1)[0]));
+        }
+        for (int i = 0; i < rightWidth; i++) {
             pts_right_list.add(new Point(pts_right.get(i, 0)[0], pts_right.get(i, 1)[0]));
         }
 
-        MatOfPoint matOfPointLeft = new MatOfPoint();
+        matOfPointLeft = new MatOfPoint();
+        matOfPointRight = new MatOfPoint();
         matOfPointLeft.fromList(pts_left_list);
-        MatOfPoint matOfPointRight = new MatOfPoint();
         matOfPointRight.fromList(pts_right_list);
 
-        double[] color = {0, 255, 0};
-
-        List<MatOfPoint> listOfPoints = new ArrayList<>();
+        listOfPoints.clear();
         listOfPoints.add(matOfPointLeft);
-        Imgproc.polylines(color_warp, listOfPoints, false, new Scalar(color), 5);
+        Imgproc.polylines(color_warp, listOfPoints, false, new Scalar(green), 5);
 
         listOfPoints.clear();
         listOfPoints.add(matOfPointRight);
-        Imgproc.polylines(color_warp, listOfPoints, false, new Scalar(color), 5);
+        Imgproc.polylines(color_warp, listOfPoints, false, new Scalar(green), 5);
 
-        Mat newwarp = new Mat();
+        newwarp = new Mat();
         Imgproc.warpPerspective(color_warp, newwarp, Minv, new Size(width, height), Imgproc.INTER_LINEAR);
+
+        rgb = new MatOfFloat(CvType.CV_32F);
+        img.convertTo(rgb,CvType.CV_32F);
+        inputFloats = new float[(int)(channels*width*height)];
+        rgb.get(0,0,inputFloats);
+
+        /*inferenceInterface.fillNodeFloat(INPUT_NODE, INPUT_SIZE, inputFloats);
+        inferenceInterface.runInference(new String[] {OUTPUT_NODE});
+        inferenceInterface.readNodeFloat(OUTPUT_NODE, resu);
+        angle = (double)resu[0];
+*/
+        angle = 80; //get from NN
+        //double slip_fator = 0.0014; // slip factor obtained from real data
+        //double steer_ratio = 15.3;  // from http://www.edmunds.com/acura/ilx/2016/road-test-specs/
+        //double wheel_base = 2.67;   //from http://www.edmunds.com/acura/ilx/2016/sedan/features-specs/
+        angle = Math.PI * angle / 180;
+        //angle = angle/(steer_ratio * wheel_base );
+        path.clear();
+        //prevent too sharp of turns
+        if(angle < 0){
+            angle = .01;
+        }
+        if(angle > Math.PI){
+            angle = Math.PI-.01;
+        }
+        for (int i = 0; i < pathMaxHeight; i++) {
+            path.add(new Point(width/2 + i / Math.tan(angle),180 - i));
+        }
+        matOfPointPath = new MatOfPoint();
+        matOfPointPath.fromList(path);
+
+        listOfPoints.clear();
+        listOfPoints.add(matOfPointPath);
+        Imgproc.polylines(img, listOfPoints, false, new Scalar(red), 1);
 
         result = new Mat();
 
