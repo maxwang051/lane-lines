@@ -23,6 +23,7 @@ import org.opencv.imgproc.Imgproc;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -294,7 +295,9 @@ public class MainActivity extends AppCompatActivity{
         // POLYFIT
 
         // Single row vector where each element is the sum of the corresponding column
-        Core.reduce(binary_warped, histogram, 0, Core.REDUCE_SUM, histogram.depth());
+        // Sum up bottom half of image
+        Mat temp = binary_warped.rowRange(binary_warped.height() / 2, binary_warped.height());
+        Core.reduce(temp, histogram, 0, Core.REDUCE_SUM, histogram.depth());
 
         // Get peaks for left and right halves of image
         leftx_base = 0;
