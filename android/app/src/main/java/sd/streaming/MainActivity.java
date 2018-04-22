@@ -53,7 +53,7 @@ public class MainActivity extends AppCompatActivity{
     private static final String INPUT_NODE = "lambda_input_1";
     private static final String OUTPUT_NODE = "add_8";
     private TensorFlowInferenceInterface inferenceInterface;
-    private static final int[] INPUT_SIZE = {160,320,3};
+    private static final int[] INPUT_SIZE = {1,160,320,3};
 
     int width = 320;
     int height = 160;
@@ -129,14 +129,9 @@ public class MainActivity extends AppCompatActivity{
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        nextImage();
-                    }
-                });
+                nextImage();
             }
-        }, 0, 50);
+        }, 0, 100);
     }
 
     @Override
@@ -175,7 +170,12 @@ public class MainActivity extends AppCompatActivity{
 
         bm = Bitmap.createBitmap(width, height,Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(result, bm);
-        imageView.setImageBitmap(bm);
+        runOnUiThread(new Runnable() {
+            public void run() {
+                imageView.setImageBitmap(bm);
+            }
+        });
+
 
         count = (count + 1) % 64;
     }
@@ -236,7 +236,7 @@ public class MainActivity extends AppCompatActivity{
     float[] resu = {0};
     double angle;
     List<Point> path = new ArrayList<>();
-    int pathMaxHeight = 120;
+    int pathMaxHeight = 60;
 
     void processImage(Mat img) {
         // Warp perspective to top down
@@ -485,12 +485,13 @@ public class MainActivity extends AppCompatActivity{
         inputFloats = new float[(int)(channels*width*height)];
         rgb.get(0,0,inputFloats);
 
-        /*inferenceInterface.fillNodeFloat(INPUT_NODE, INPUT_SIZE, inputFloats);
+        inferenceInterface.fillNodeFloat(INPUT_NODE, INPUT_SIZE, inputFloats);
         inferenceInterface.runInference(new String[] {OUTPUT_NODE});
         inferenceInterface.readNodeFloat(OUTPUT_NODE, resu);
-        angle = (double)resu[0];
-*/
-        angle = 80; //get from NN
+        //Log.e("angle",Float.toString(resu[0]));
+        angle = (double)resu[0] + 360;
+
+        //angle = 80; //get from NN
         //double slip_fator = 0.0014; // slip factor obtained from real data
         //double steer_ratio = 15.3;  // from http://www.edmunds.com/acura/ilx/2016/road-test-specs/
         //double wheel_base = 2.67;   //from http://www.edmunds.com/acura/ilx/2016/sedan/features-specs/
