@@ -1,3 +1,3 @@
-C:/Users/Alec/AndroidStudioProjects/lane-lines/android/app/.externalNativeBuild/cmake/debug/x86_64/CMakeFiles/native-lib.dir
-C:/Users/Alec/AndroidStudioProjects/lane-lines/android/app/.externalNativeBuild/cmake/debug/x86_64/CMakeFiles/edit_cache.dir
-C:/Users/Alec/AndroidStudioProjects/lane-lines/android/app/.externalNativeBuild/cmake/debug/x86_64/CMakeFiles/rebuild_cache.dir
+/Users/maxwang/CODE/lane-lines/android/app/.externalNativeBuild/cmake/debug/x86_64/CMakeFiles/edit_cache.dir
+/Users/maxwang/CODE/lane-lines/android/app/.externalNativeBuild/cmake/debug/x86_64/CMakeFiles/rebuild_cache.dir
+/Users/maxwang/CODE/lane-lines/android/app/.externalNativeBuild/cmake/debug/x86_64/CMakeFiles/native-lib.dir

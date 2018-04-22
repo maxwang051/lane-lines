@@ -49,7 +49,7 @@ public class MainActivity extends AppCompatActivity{
         System.loadLibrary("tensorflow_inference");
     }
 
-    private static final String MODEL_FILE = "file:///android_asset/model.pb";
+    private static final String MODEL_FILE = "file:///android_asset/model1.pb";
     private static final String INPUT_NODE = "lambda_input_1";
     private static final String OUTPUT_NODE = "add_8";
     private TensorFlowInferenceInterface inferenceInterface;
@@ -488,32 +488,21 @@ public class MainActivity extends AppCompatActivity{
         inferenceInterface.fillNodeFloat(INPUT_NODE, INPUT_SIZE, inputFloats);
         inferenceInterface.runInference(new String[] {OUTPUT_NODE});
         inferenceInterface.readNodeFloat(OUTPUT_NODE, resu);
-        //Log.e("angle",Float.toString(resu[0]));
-        angle = (double)resu[0] + 360;
+        //Log.d("angle",Float.toString(resu[0]));
+        //angle = (double)resu[0] + 360;
 
         //angle = 80; //get from NN
         //double slip_fator = 0.0014; // slip factor obtained from real data
         //double steer_ratio = 15.3;  // from http://www.edmunds.com/acura/ilx/2016/road-test-specs/
         //double wheel_base = 2.67;   //from http://www.edmunds.com/acura/ilx/2016/sedan/features-specs/
-        angle = Math.PI * angle / 180;
-        //angle = angle/(steer_ratio * wheel_base );
-        path.clear();
-        //prevent too sharp of turns
-        if(angle < 0){
-            angle = .01;
-        }
-        if(angle > Math.PI){
-            angle = Math.PI-.01;
-        }
-        for (int i = 0; i < pathMaxHeight; i++) {
-            path.add(new Point(width/2 + i / Math.tan(angle),180 - i));
-        }
-        matOfPointPath = new MatOfPoint();
-        matOfPointPath.fromList(path);
 
-        listOfPoints.clear();
-        listOfPoints.add(matOfPointPath);
-        Imgproc.polylines(img, listOfPoints, false, new Scalar(red), 1);
+        // Convert angle from degrees to rads
+        angle = Math.PI * resu[0] / 180;
+
+        // Draw line from bottom middle to end point of line
+        Point start = new Point(width/2.0, height);
+        Point end = new Point(width/2.0 + 60 * Math.sin(angle), height - 60 * Math.cos(angle));
+        Imgproc.line(img, start, end, new Scalar(0, 0, 255));
 
         result = new Mat();
 

@@ -1,15 +1,15 @@
-Executable : C:\Users\Alec\AppData\Local\Android\Sdk\cmake\3.6.4111459\bin\cmake.exe
+Executable : /Users/maxwang/Library/Android/sdk/cmake/3.6.4111459/bin/cmake
 arguments : 
--HC:\Users\Alec\AndroidStudioProjects\lane-lines\android\app
--BC:\Users\Alec\AndroidStudioProjects\lane-lines\android\app\.externalNativeBuild\cmake\debug\x86_64
+-H/Users/maxwang/CODE/lane-lines/android/app
+-B/Users/maxwang/CODE/lane-lines/android/app/.externalNativeBuild/cmake/debug/x86_64
 -DANDROID_ABI=x86_64
 -DANDROID_PLATFORM=android-21
--DCMAKE_LIBRARY_OUTPUT_DIRECTORY=C:\Users\Alec\AndroidStudioProjects\lane-lines\android\app\build\intermediates\cmake\debug\obj\x86_64
+-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=/Users/maxwang/CODE/lane-lines/android/app/build/intermediates/cmake/debug/obj/x86_64
 -DCMAKE_BUILD_TYPE=Debug
--DANDROID_NDK=C:\Users\Alec\AppData\Local\Android\Sdk\ndk-bundle
+-DANDROID_NDK=/Users/maxwang/Library/Android/sdk/ndk-bundle
 -DCMAKE_CXX_FLAGS=
--DCMAKE_TOOLCHAIN_FILE=C:\Users\Alec\AppData\Local\Android\Sdk\ndk-bundle\build\cmake\android.toolchain.cmake
--DCMAKE_MAKE_PROGRAM=C:\Users\Alec\AppData\Local\Android\Sdk\cmake\3.6.4111459\bin\ninja.exe
+-DCMAKE_TOOLCHAIN_FILE=/Users/maxwang/Library/Android/sdk/ndk-bundle/build/cmake/android.toolchain.cmake
+-DCMAKE_MAKE_PROGRAM=/Users/maxwang/Library/Android/sdk/cmake/3.6.4111459/bin/ninja
 -GAndroid Gradle - Ninja
 jvmArgs : 
 

@@ -1,12 +1,9 @@
 
 {
-	"buildFiles" : 
-	[
-		"C:/Users/Alec/AndroidStudioProjects/lane-lines/android/app/CMakeLists.txt"
-	],
+	"buildFiles" : [ "/Users/maxwang/CODE/lane-lines/android/app/CMakeLists.txt" ],
 	"cleanCommands" : 
 	[
-		"C:\\Users\\Alec\\AppData\\Local\\Android\\Sdk\\cmake\\3.6.4111459\\bin\\cmake.exe --build C:\\Users\\Alec\\AndroidStudioProjects\\lane-lines\\android\\app\\.externalNativeBuild\\cmake\\debug\\arm64-v8a --target clean"
+		"/Users/maxwang/Library/Android/sdk/cmake/3.6.4111459/bin/cmake --build /Users/maxwang/CODE/lane-lines/android/app/.externalNativeBuild/cmake/debug/arm64-v8a --target clean"
 	],
 	"cppFileExtensions" : [ "cpp" ],
 	"libraries" : 
@@ -15,27 +12,27 @@
 		{
 			"abi" : "arm64-v8a",
 			"artifactName" : "native-lib",
-			"buildCommand" : "C:\\Users\\Alec\\AppData\\Local\\Android\\Sdk\\cmake\\3.6.4111459\\bin\\cmake.exe --build C:\\Users\\Alec\\AndroidStudioProjects\\lane-lines\\android\\app\\.externalNativeBuild\\cmake\\debug\\arm64-v8a --target native-lib",
+			"buildCommand" : "/Users/maxwang/Library/Android/sdk/cmake/3.6.4111459/bin/cmake --build /Users/maxwang/CODE/lane-lines/android/app/.externalNativeBuild/cmake/debug/arm64-v8a --target native-lib",
 			"buildType" : "debug",
 			"files" : 
 			[
 				
 				{
-					"flags" : "  --target=aarch64-none-linux-android --gcc-toolchain=C:/Users/Alec/AppData/Local/Android/Sdk/ndk-bundle/toolchains/aarch64-linux-android-4.9/prebuilt/windows-x86_64 --sysroot=C:/Users/Alec/AppData/Local/Android/Sdk/ndk-bundle/sysroot  -Dnative_lib_EXPORTS -isystem C:\\Users\\Alec\\AppData\\Local\\Android\\Sdk\\ndk-bundle\\sources\\cxx-stl\\gnu-libstdc++\\4.9\\include -isystem C:\\Users\\Alec\\AppData\\Local\\Android\\Sdk\\ndk-bundle\\sources\\cxx-stl\\gnu-libstdc++\\4.9\\libs\\arm64-v8a\\include -isystem C:\\Users\\Alec\\AppData\\Local\\Android\\Sdk\\ndk-bundle\\sources\\cxx-stl\\gnu-libstdc++\\4.9\\include\\backward  -isystem C:/Users/Alec/AppData/Local/Android/Sdk/ndk-bundle/sysroot/usr/include/aarch64-linux-android -D__ANDROID_API__=21 -g -DANDROID -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -Wa,--noexecstack -Wformat -Werror=format-security   -O0 -fno-limit-debug-info  -fPIC    -c ",
-					"src" : "C:/Users/Alec/AndroidStudioProjects/lane-lines/android/app/src/main/cpp/native-lib.cpp",
-					"workingDirectory" : "C:/Users/Alec/AndroidStudioProjects/lane-lines/android/app/.externalNativeBuild/cmake/debug/arm64-v8a"
+					"flags" : "  --target=aarch64-none-linux-android --gcc-toolchain=/Users/maxwang/Library/Android/sdk/ndk-bundle/toolchains/aarch64-linux-android-4.9/prebuilt/darwin-x86_64 --sysroot=/Users/maxwang/Library/Android/sdk/ndk-bundle/sysroot  -Dnative_lib_EXPORTS -isystem /Users/maxwang/Library/Android/sdk/ndk-bundle/sources/cxx-stl/gnu-libstdc++/4.9/include -isystem /Users/maxwang/Library/Android/sdk/ndk-bundle/sources/cxx-stl/gnu-libstdc++/4.9/libs/arm64-v8a/include -isystem /Users/maxwang/Library/Android/sdk/ndk-bundle/sources/cxx-stl/gnu-libstdc++/4.9/include/backward  -isystem /Users/maxwang/Library/Android/sdk/ndk-bundle/sysroot/usr/include/aarch64-linux-android -D__ANDROID_API__=21 -g -DANDROID -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -Wa,--noexecstack -Wformat -Werror=format-security   -O0 -fno-limit-debug-info  -fPIC    -c ",
+					"src" : "/Users/maxwang/CODE/lane-lines/android/app/src/main/cpp/native-lib.cpp",
+					"workingDirectory" : "/Users/maxwang/CODE/lane-lines/android/app/.externalNativeBuild/cmake/debug/arm64-v8a"
 				}
 			],
-			"output" : "C:/Users/Alec/AndroidStudioProjects/lane-lines/android/app/build/intermediates/cmake/debug/obj/arm64-v8a/libnative-lib.so",
-			"toolchain" : "2524281903"
+			"output" : "/Users/maxwang/CODE/lane-lines/android/app/build/intermediates/cmake/debug/obj/arm64-v8a/libnative-lib.so",
+			"toolchain" : "7307462560364052645"
 		}
 	},
 	"toolchains" : 
 	{
-		"2524281903" : 
+		"7307462560364052645" : 
 		{
-			"cCompilerExecutable" : "C:/Users/Alec/AppData/Local/Android/Sdk/ndk-bundle/toolchains/llvm/prebuilt/windows-x86_64/bin/clang.exe",
-			"cppCompilerExecutable" : "C:/Users/Alec/AppData/Local/Android/Sdk/ndk-bundle/toolchains/llvm/prebuilt/windows-x86_64/bin/clang++.exe"
+			"cCompilerExecutable" : "/Users/maxwang/Library/Android/sdk/ndk-bundle/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang",
+			"cppCompilerExecutable" : "/Users/maxwang/Library/Android/sdk/ndk-bundle/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang++"
 		}
 	}
 }
