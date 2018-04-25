@@ -33,8 +33,6 @@ import java.lang.Math;
 
 import org.tensorflow.contrib.android.TensorFlowInferenceInterface;
 
-import org.apache.commons.math3.*;
-
 public class MainActivity extends AppCompatActivity{
     private static final String TAG = "OCVSample::Activity";
 
@@ -136,7 +134,7 @@ public class MainActivity extends AppCompatActivity{
                 nextImage();
             }
 
-        }, 0, 50);
+        }, 0, 100);
     }
 
     @Override
@@ -249,8 +247,8 @@ public class MainActivity extends AppCompatActivity{
         // Warp perspective to top down
         warpSrc.put(0, 0, new double[]{110,40});
         warpSrc.put(1, 0, new double[]{210,40});
-        warpSrc.put(2, 0, new double[]{20,120});
-        warpSrc.put(3, 0, new double[]{300,120});
+        warpSrc.put(2, 0, new double[]{20,130});
+        warpSrc.put(3, 0, new double[]{315,130});
 
         warpDst.put(0, 0, new double[]{offset,0});
         warpDst.put(1, 0, new double[]{width-offset,0});
@@ -319,9 +317,6 @@ public class MainActivity extends AppCompatActivity{
         leftx = new Mat(0,1,type);
         lefty = new Mat(0,1,type);
 
-        WeightedObservedPoints obs1 = new WeightedObservedPoints();
-        WeightedObservedPoints obs2 = new WeightedObservedPoints();
-
         // Step through the windows one by one
         for (int i = 0; i < nwindows; i++) {
             win_y_low = binary_warped.height() - (i+1) * window_height;
@@ -348,9 +343,7 @@ public class MainActivity extends AppCompatActivity{
                     //Extract left and right line pixel positions
                     leftx.push_back(new Mat(1,1,type,new Scalar(x)));
                     lefty.push_back(new Mat(1,1,type,new Scalar(y)));
-
-                    obs1.add(y, x);
-                }
+                    }
                 if((y >= win_y_low) && (y < win_y_high) && (x >= win_xright_low) &&  (x < win_xright_high)) {
 
                     right_count++;
@@ -360,7 +353,6 @@ public class MainActivity extends AppCompatActivity{
                     rightx.push_back(new Mat(1,1,type,new Scalar(x)));
                     righty.push_back(new Mat(1,1,type,new Scalar(y)));
 
-                    obs2.add(y, x);
                 }
             }
             //If you found > minpix pixels, recenter next window on their mean position
@@ -377,18 +369,13 @@ public class MainActivity extends AppCompatActivity{
         right_weights = new Mat(3,1,type);
         left_weights = new Mat(3,1,type);
 
-        double[] left_weights2 = null;
-        double[] right_weights2 = null;
-
         //Fit a second order polynomial to each
         PolynomialCurveFitter fitter = PolynomialCurveFitter.create(2);
         if(rightx.rows() > 0){
-            //polyfit(rightx.t(),righty,right_weights,5);
-            right_weights2 = fitter.fit(obs2.toList());
+            polyfit(righty.t(),rightx,right_weights,5);
         }
         if(leftx.rows() > 0){
-            //polyfit(leftx.t(),lefty,left_weights,5);
-            left_weights2 = fitter.fit(obs1.toList());
+            polyfit(lefty.t(),leftx,left_weights,5);
         }
 
         // DRAW ON LANE
@@ -428,19 +415,19 @@ public class MainActivity extends AppCompatActivity{
 
         // left_fit[0]*ploty**2
         Core.pow(leftploty, 2, left_fitx2);
-        Core.multiply(left_fitx2, new Scalar(left_weights2[2]), left_fitx2);
+        Core.multiply(left_fitx2, new Scalar(left_weights.get(0, 0)[0]), left_fitx2);
         // left_fit[1]*ploty
-        Core.multiply(leftploty, new Scalar(left_weights2[1]), left_fitx1);
+        Core.multiply(leftploty, new Scalar(left_weights.get(1, 0)[0]), left_fitx1);
         Core.add(left_fitx2, left_fitx1, left_fitx);
-        Core.add(left_fitx, new Scalar(left_weights2[0]), left_fitx);
+        Core.add(left_fitx, new Scalar(left_weights.get(2, 0)[0]), left_fitx);
 
         // right_fit[0]*ploty**2
         Core.pow(rightploty, 2, right_fitx2);
-        Core.multiply(right_fitx2, new Scalar(right_weights2[2]), right_fitx2);
+        Core.multiply(right_fitx2, new Scalar(right_weights.get(0, 0)[0]), right_fitx2);
         // right_fit[1]*ploty
-        Core.multiply(rightploty, new Scalar(right_weights2[1]), right_fitx1);
+        Core.multiply(rightploty, new Scalar(right_weights.get(1, 0)[0]), right_fitx1);
         Core.add(right_fitx2, right_fitx1, right_fitx);
-        Core.add(right_fitx, new Scalar(right_weights2[0]), right_fitx);
+        Core.add(right_fitx, new Scalar(right_weights.get(2, 0)[0]), right_fitx);
 
         // Get points for left line
         matrices.clear();

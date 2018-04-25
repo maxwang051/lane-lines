@@ -10,16 +10,17 @@ import argparse
 from moviepy.editor import VideoFileClip
 
 # CHANGE THESE
-input_directory = '/media/max/Storage/comma-dataset/comma-dataset/images/'
-output_directory = '/media/max/Storage/comma-dataset/comma-dataset/output/'
+# input_directory = '/media/max/Storage/comma-dataset/comma-dataset/images/'
+input_directory = '/Users/maxwang/CODE/lane-lines/android/app/src/main/res/drawable/'
+output_directory = '/Users/maxwang/CODE/lane-lines/output_images/'
 
 parser = argparse.ArgumentParser(description='Lane line detector')
 parser.add_argument('--export_binary', dest='export_binary', action='store_true')
 parser.set_defaults(export_binary=False)
 args = parser.parse_args()
 
-frame_begin = 10000
-frame_end = 16000
+frame_begin = 1
+frame_end = 64
 
 def corners_unwarp(img):
     img_size = (img.shape[1], img.shape[0])
@@ -80,7 +81,7 @@ def color_threshold(img):
     b_binary[(lab_b > b_thresh[0]) & (lab_b <= b_thresh[1])] = 1
 
     binary_warped = np.zeros_like(b_binary)
-    binary_warped[(b_binary == 1) | (l_binary == 1) | (binary == 1) | (sxbinary == 1)] = 1
+    binary_warped[(sxbinary == 1)] = 1
 
     return binary_warped
 
@@ -393,6 +394,8 @@ def process_image(img):
 
     left_fit, right_fit, left_lane_inds, right_lane_inds = polyfit(binary_warped)
 
+    print(left_fit)
+
     left_line.add_fit(left_fit, left_lane_inds)
     right_line.add_fit(right_fit, right_lane_inds)
 
@@ -400,6 +403,8 @@ def process_image(img):
         left_rad, right_rad, distance = calculate_radius_and_distance(binary_warped, left_line.best_fit, right_line.best_fit, left_lane_inds, right_lane_inds)
 
         if (args.export_binary):
+            cv2.imwrite(output_directory + str(i) + '.jpg', binary_warped)
+
             output_img = binary_warped
         else:
             output_img = draw_on_lane(new_img, binary_warped, left_line.best_fit, right_line.best_fit, Minv)
@@ -412,7 +417,8 @@ left_line = Line()
 right_line = Line()
 
 for i in range(frame_begin, frame_end):
-    img = cv2.imread(input_directory + str(i) + '.jpg')
+    filename = input_directory + 'image' + str(i) + '.jpg'
+    img = cv2.imread(filename)
 
     if img is not None:
 
@@ -421,8 +427,6 @@ for i in range(frame_begin, frame_end):
         bgr = cv2.cvtColor(output, cv2.COLOR_RGB2BGR)
 
         # Uncomment this to show the frames being output
-        #cv2.imshow('frame', bgr)
+        #cv2.imshow('frame', output)
         cv2.imwrite(output_directory + str(i) + '.jpg', bgr)
-
-        if cv2.waitKey(25) == 27:
-            break
+        
