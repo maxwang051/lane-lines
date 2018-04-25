@@ -7,6 +7,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.ImageView;
 
+import org.apache.commons.math3.fitting.PolynomialCurveFitter;
+import org.apache.commons.math3.fitting.WeightedObservedPoints;
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
@@ -30,6 +32,8 @@ import java.util.TimerTask;
 import java.lang.Math;
 
 import org.tensorflow.contrib.android.TensorFlowInferenceInterface;
+
+import org.apache.commons.math3.*;
 
 public class MainActivity extends AppCompatActivity{
     private static final String TAG = "OCVSample::Activity";
@@ -131,7 +135,7 @@ public class MainActivity extends AppCompatActivity{
             public void run() {
                 nextImage();
             }
-        }, 0, 100);
+        }, 200, 100);
     }
 
     @Override
@@ -150,7 +154,7 @@ public class MainActivity extends AppCompatActivity{
 
     void nextImage() {
         packageName = getPackageName();
-        id = getResources().getIdentifier("image" + Integer.toString(count),
+        id = getResources().getIdentifier("c" + Integer.toString(count),
                 drawable, packageName);
         imageView = (ImageView) findViewById(R.id.imageView);
 
@@ -169,7 +173,9 @@ public class MainActivity extends AppCompatActivity{
         processImage(img);
 
         bm = Bitmap.createBitmap(width, height,Bitmap.Config.ARGB_8888);
+
         Utils.matToBitmap(result, bm);
+
         runOnUiThread(new Runnable() {
             public void run() {
                 imageView.setImageBitmap(bm);
@@ -177,7 +183,7 @@ public class MainActivity extends AppCompatActivity{
         });
 
 
-        count = (count + 1) % 64;
+        count = (count + 1) % 100;
     }
 
     void polyfit(Mat X, Mat Y, Mat weights, int type){
@@ -202,13 +208,13 @@ public class MainActivity extends AppCompatActivity{
     int num1,num2;
 
     // Number of sliding windows
-    int nwindows = 8;
+    int nwindows = 10;
     // Set height of windows
-    int window_height = 20;
+    int window_height = 16;
     // Set the width of the windows +/- margin
     int margin = 40;
     // Set minimum number of pixels found to recenter window
-    int minpix = 20;
+    int minpix = 10;
 
     int win_y_low, win_y_high, win_xleft_low, win_xleft_high, win_xright_low, win_xright_high;
 
@@ -257,22 +263,6 @@ public class MainActivity extends AppCompatActivity{
 
         // Perform color transformations
         Imgproc.cvtColor(warped, gray, Imgproc.COLOR_RGB2GRAY);
-        Imgproc.cvtColor(warped, hls, Imgproc.COLOR_RGB2HLS);
-        Imgproc.cvtColor(warped, lab, Imgproc.COLOR_RGB2Lab);
-
-        // Get L and B channels from HLS and LAB
-        Core.extractChannel(hls, hls_l, 1);
-        Core.extractChannel(lab, lab_b, 2);
-
-        // Normalize lab_b if there is yellow in the image
-        Core.MinMaxLocResult b_minMax = Core.minMaxLoc(b_thresh_high);
-        if (b_minMax.maxVal > 175) {
-            Core.multiply(lab_b, new Scalar(255.0 / b_minMax.maxVal), lab_b);
-        }
-
-        // Threshold L and B channels
-        Imgproc.threshold(hls_l, l_thresh_high, 180, 255, Imgproc.THRESH_BINARY);
-        Imgproc.threshold(lab_b, b_thresh_high, 180, 255, Imgproc.THRESH_BINARY);
 
         // Get Sobel in x direction
         Imgproc.Sobel(gray, sobel_x, -1, 1, 0);
@@ -282,15 +272,16 @@ public class MainActivity extends AppCompatActivity{
         Core.MinMaxLocResult sobel_minMax = Core.minMaxLoc(sobel_x);
         Core.multiply(sobel_x, new Scalar(255.0 / sobel_minMax.maxVal), sobel_x);
         // Threshold sobel values greater than 50 and less than 100 and combine back into sobel_x
-        Imgproc.threshold(sobel_x, sobel_x_low, 90, 255, Imgproc.THRESH_BINARY);
-        Imgproc.threshold(sobel_x, sobel_x_high, 200, 255, Imgproc.THRESH_BINARY_INV);
+        Imgproc.threshold(sobel_x, sobel_x_low, 70, 255, Imgproc.THRESH_BINARY);
+        Imgproc.threshold(sobel_x, sobel_x_high, 255, 255, Imgproc.THRESH_BINARY_INV);
         Core.bitwise_and(sobel_x_low, sobel_x_high, sobel_x);
 
-        Core.bitwise_or(l_thresh_high, sobel_x, binary_warped);
-        Core.bitwise_or(binary_warped, b_thresh_high, binary_warped);
+        //Core.bitwise_or(l_thresh_high, sobel_x, binary_warped);
+        //Core.bitwise_or(binary_warped, b_thresh_high, binary_warped);
 
-        Imgproc.threshold(binary_warped, binary_warped, 150, 255, Imgproc.THRESH_BINARY);
+        //Imgproc.threshold(binary_warped, binary_warped, 150, 255, Imgproc.THRESH_BINARY);
 
+        binary_warped = sobel_x.clone();
 
         // POLYFIT
 
@@ -326,6 +317,10 @@ public class MainActivity extends AppCompatActivity{
         righty = new Mat(0,1,type);
         leftx = new Mat(0,1,type);
         lefty = new Mat(0,1,type);
+
+        WeightedObservedPoints obs1 = new WeightedObservedPoints();
+        WeightedObservedPoints obs2 = new WeightedObservedPoints();
+
         // Step through the windows one by one
         for (int i = 0; i < nwindows; i++) {
             win_y_low = binary_warped.height() - (i+1) * window_height;
@@ -352,6 +347,8 @@ public class MainActivity extends AppCompatActivity{
                     //Extract left and right line pixel positions
                     leftx.push_back(new Mat(1,1,type,new Scalar(x)));
                     lefty.push_back(new Mat(1,1,type,new Scalar(y)));
+
+                    obs1.add(y, x);
                 }
                 if((y >= win_y_low) && (y < win_y_high) && (x >= win_xright_low) &&  (x < win_xright_high)) {
 
@@ -361,6 +358,8 @@ public class MainActivity extends AppCompatActivity{
                     //Extract left and right line pixel positions
                     rightx.push_back(new Mat(1,1,type,new Scalar(x)));
                     righty.push_back(new Mat(1,1,type,new Scalar(y)));
+
+                    obs2.add(y, x);
                 }
             }
             //If you found > minpix pixels, recenter next window on their mean position
@@ -377,12 +376,18 @@ public class MainActivity extends AppCompatActivity{
         right_weights = new Mat(3,1,type);
         left_weights = new Mat(3,1,type);
 
+        double[] left_weights2 = null;
+        double[] right_weights2 = null;
+
         //Fit a second order polynomial to each
+        PolynomialCurveFitter fitter = PolynomialCurveFitter.create(2);
         if(rightx.rows() > 0){
-            polyfit(rightx.t(),righty,right_weights,5);
+            //polyfit(rightx.t(),righty,right_weights,5);
+            right_weights2 = fitter.fit(obs2.toList());
         }
         if(leftx.rows() > 0){
-            polyfit(leftx.t(),lefty,left_weights,5);
+            //polyfit(leftx.t(),lefty,left_weights,5);
+            left_weights2 = fitter.fit(obs1.toList());
         }
 
         // DRAW ON LANE
@@ -399,18 +404,18 @@ public class MainActivity extends AppCompatActivity{
         //for (int i = 0; i < width; i++) { ploty.put(0, i, i);}
 
         Core.MinMaxLocResult leftmm = Core.minMaxLoc(leftx);
-        leftWidth = (int)(leftmm.maxVal);
-        //leftWidth = width;
-        //rightWidth = width;
+        //leftWidth = (int)(leftmm.maxVal);
+        leftWidth = height;
+        rightWidth = height;
         leftploty = new Mat(1,leftWidth,CvType.CV_32F);
         for (int i = 0; i < leftWidth; i++ ){leftploty.put(0,i,i);}
 
         Core.MinMaxLocResult rightmm = Core.minMaxLoc(rightx);
-        rightWidth = (int)(width - rightmm.minVal);
+        //rightWidth = (int)(width - rightmm.minVal);
         //leftWidth = width;
         //rightWidth = width;
         rightploty = new Mat(1,rightWidth,CvType.CV_32F);
-        for (int i = 0; i < rightWidth; i++ ){rightploty.put(0,i,i+rightmm.minVal);}
+        for (int i = 0; i < rightWidth; i++ ){rightploty.put(0,i,i);}
 
         left_fitx = new Mat(0, 0, CvType.CV_32F);
         left_fitx2 = new Mat(0, 0, CvType.CV_32F);
@@ -422,19 +427,19 @@ public class MainActivity extends AppCompatActivity{
 
         // left_fit[0]*ploty**2
         Core.pow(leftploty, 2, left_fitx2);
-        Core.multiply(left_fitx2, new Scalar(left_weights.get(0, 0)[0]), left_fitx2);
+        Core.multiply(left_fitx2, new Scalar(left_weights2[2]), left_fitx2);
         // left_fit[1]*ploty
-        Core.multiply(leftploty, new Scalar(left_weights.get(1, 0)[0]), left_fitx1);
+        Core.multiply(leftploty, new Scalar(left_weights2[1]), left_fitx1);
         Core.add(left_fitx2, left_fitx1, left_fitx);
-        Core.add(left_fitx, new Scalar(left_weights.get(2, 0)[0]), left_fitx);
+        Core.add(left_fitx, new Scalar(left_weights2[0]), left_fitx);
 
         // right_fit[0]*ploty**2
         Core.pow(rightploty, 2, right_fitx2);
-        Core.multiply(right_fitx2, new Scalar(right_weights.get(0, 0)[0]), right_fitx2);
+        Core.multiply(right_fitx2, new Scalar(right_weights2[2]), right_fitx2);
         // right_fit[1]*ploty
-        Core.multiply(rightploty, new Scalar(right_weights.get(1, 0)[0]), right_fitx1);
+        Core.multiply(rightploty, new Scalar(right_weights2[1]), right_fitx1);
         Core.add(right_fitx2, right_fitx1, right_fitx);
-        Core.add(right_fitx, new Scalar(right_weights.get(2, 0)[0]), right_fitx);
+        Core.add(right_fitx, new Scalar(right_weights2[0]), right_fitx);
 
         // Get points for left line
         matrices.clear();
@@ -458,10 +463,14 @@ public class MainActivity extends AppCompatActivity{
         pts_left_list.clear();
         pts_right_list.clear();
         for (int i = 0; i < leftWidth; i++) {
-            pts_left_list.add(new Point(pts_left.get(i, 0)[0], pts_left.get(i, 1)[0]));
+            Point p = new Point(pts_left.get(i, 1)[0], pts_left.get(i, 0)[0]);
+            pts_left_list.add(p);
+            //Log.d("point", p.x + " " + p.y);
         }
         for (int i = 0; i < rightWidth; i++) {
-            pts_right_list.add(new Point(pts_right.get(i, 0)[0], pts_right.get(i, 1)[0]));
+            Point p = new Point(pts_right.get(i, 1)[0], pts_right.get(i, 0)[0]);
+            pts_right_list.add(p);
+            //Log.d("point", p.x + " " + p.y);
         }
 
         matOfPointLeft = new MatOfPoint();
