@@ -131,7 +131,7 @@ public class MainActivity extends AppCompatActivity{
             public void run() {
                 nextImage();
             }
-        }, 0, 100);
+        }, 0, 50);
     }
 
     @Override
