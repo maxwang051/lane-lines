@@ -7,8 +7,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.ImageView;
 
-import org.apache.commons.math3.fitting.PolynomialCurveFitter;
-import org.apache.commons.math3.fitting.WeightedObservedPoints;
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
@@ -207,9 +205,9 @@ public class MainActivity extends AppCompatActivity{
     int num1,num2;
 
     // Number of sliding windows
-    int nwindows = 10;
+    int nwindows = 8;
     // Set height of windows
-    int window_height = 16;
+    int window_height = 20;
     // Set the width of the windows +/- margin
     int margin = 40;
     // Set minimum number of pixels found to recenter window
@@ -370,7 +368,6 @@ public class MainActivity extends AppCompatActivity{
         left_weights = new Mat(3,1,type);
 
         //Fit a second order polynomial to each
-        PolynomialCurveFitter fitter = PolynomialCurveFitter.create(2);
         if(rightx.rows() > 0){
             polyfit(righty.t(),rightx,right_weights,5);
         }
